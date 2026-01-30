@@ -1,6 +1,6 @@
 "use client"
 
-import Link from "next/link"
+import { useState } from "react"
 import {
   ArrowRight,
   Calendar,
@@ -24,6 +24,7 @@ import {
   EmptyContent,
 } from "@/components/ui/empty"
 import { useActivities } from "@/hooks/use-activities"
+import { ActivityDialog } from "@/components/dashboard/activity-dialog"
 import { cn } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
 
@@ -59,6 +60,7 @@ function formatTimestamp(timestamp: string): string {
 }
 
 export function ActivityFeed() {
+  const [dialogOpen, setDialogOpen] = useState(false)
   const { data, isLoading, error } = useActivities({ limit: 10 })
 
   if (isLoading) {
@@ -128,59 +130,65 @@ export function ActivityFeed() {
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between pb-3">
-        <CardTitle className="text-lg">Recent Activity</CardTitle>
-        <Link href="/jobs">
-          <Button variant="ghost" size="sm" className="text-primary">
+    <>
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <CardTitle className="text-lg">Recent Activity</CardTitle>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-primary"
+            onClick={() => setDialogOpen(true)}
+          >
             View all
             <ArrowRight className="ml-1 h-4 w-4" />
           </Button>
-        </Link>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {activities.map((activity) => {
-            const activityStyle = getActivityIcon(activity.type)
-            const initials = activity.candidateName
-              ?.split(" ")
-              .map((n) => n[0])
-              .join("") || "??"
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {activities.map((activity) => {
+              const activityStyle = getActivityIcon(activity.type)
+              const initials = activity.candidateName
+                ?.split(" ")
+                .map((n) => n[0])
+                .join("") || "??"
 
-            return (
-              <div key={activity.id} className="flex items-start gap-3">
-                <Avatar className="h-9 w-9">
-                  <AvatarFallback
+              return (
+                <div key={activity.id} className="flex items-start gap-3">
+                  <Avatar className="h-9 w-9">
+                    <AvatarFallback
+                      className={cn(
+                        "text-xs font-medium",
+                        activityStyle.bg,
+                        activityStyle.color
+                      )}
+                    >
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-foreground">{activity.message}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatTimestamp(activity.timestamp)}
+                    </p>
+                  </div>
+                  <div
                     className={cn(
-                      "text-xs font-medium",
-                      activityStyle.bg,
-                      activityStyle.color
+                      "flex h-8 w-8 items-center justify-center rounded-full",
+                      activityStyle.bg
                     )}
                   >
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-foreground">{activity.message}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatTimestamp(activity.timestamp)}
-                  </p>
+                    <activityStyle.icon
+                      className={cn("h-4 w-4", activityStyle.color)}
+                    />
+                  </div>
                 </div>
-                <div
-                  className={cn(
-                    "flex h-8 w-8 items-center justify-center rounded-full",
-                    activityStyle.bg
-                  )}
-                >
-                  <activityStyle.icon
-                    className={cn("h-4 w-4", activityStyle.color)}
-                  />
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </CardContent>
-    </Card>
+              )
+            })}
+          </div>
+        </CardContent>
+      </Card>
+      <ActivityDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+    </>
   )
 }

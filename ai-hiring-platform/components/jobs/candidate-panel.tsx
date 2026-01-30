@@ -212,7 +212,7 @@ export function CandidatePanel({
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
       <DialogContent className="max-w-[70vw] sm:max-w-[70vw] w-[70vw] h-[85vh] max-h-[85vh] p-0 flex flex-col overflow-hidden">
         {/* Header */}
-        <DialogHeader className="p-6 pb-4 border-b border-border shrink-0">
+        <DialogHeader className="p-6 pb-4 pr-12 border-b border-border shrink-0">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
               <Avatar className="h-14 w-14">
@@ -239,7 +239,7 @@ export function CandidatePanel({
                 </p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 -ml-8">
               <AIScoreBadge
                 score={displayCandidate.aiScore}
                 size="lg"
