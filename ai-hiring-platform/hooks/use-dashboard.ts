@@ -15,7 +15,7 @@
 
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 // ============================================================
 // TYPE DEFINITIONS
@@ -135,5 +135,57 @@ export function useDashboardAlerts() {
     queryFn: fetchDashboardAlerts,
     staleTime: 30_000, // Consider data stale after 30 seconds
     refetchInterval: 60_000, // Refetch every minute
+  });
+}
+
+// ============================================================
+// INTERVIEW REVIEW MUTATIONS
+// ============================================================
+
+/**
+ * Response from the interview review API
+ */
+export interface MarkInterviewReviewedResponse {
+  interview_id: string;
+  reviewed_at: string | null;
+  already_reviewed?: boolean;
+}
+
+/**
+ * Mark an interview as reviewed
+ * This removes it from the "Needs Your Attention" alerts
+ */
+async function markInterviewAsReviewed(
+  interviewId: string
+): Promise<MarkInterviewReviewedResponse> {
+  const response = await fetch(`/api/interviews/${interviewId}/review`, {
+    method: "POST",
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to mark interview as reviewed");
+  }
+  return response.json();
+}
+
+/**
+ * Hook for marking an interview as reviewed
+ * Automatically invalidates dashboard alerts on success
+ * 
+ * @returns Mutation for marking interview as reviewed
+ * 
+ * @example
+ * const markReviewed = useMarkInterviewReviewed();
+ * markReviewed.mutate(interviewId);
+ */
+export function useMarkInterviewReviewed() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: markInterviewAsReviewed,
+    onSuccess: () => {
+      // Invalidate dashboard alerts so the count updates
+      queryClient.invalidateQueries({ queryKey: dashboardKeys.alerts() });
+    },
   });
 }
