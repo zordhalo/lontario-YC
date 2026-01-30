@@ -45,24 +45,13 @@ const createCandidateSchema = z.object({
 
 /**
  * GET /api/candidates
- * List candidates for a job
+ * List candidates for a job (MVP: no auth required)
  */
 export async function GET(req: NextRequest) {
   try {
     const supabase = await createClient();
 
-    // Verify authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: "Unauthorized", code: "AUTH_REQUIRED" },
-        { status: 401 }
-      );
-    }
+    // MVP: Auth disabled
 
     // Parse and validate query parameters
     const searchParams = Object.fromEntries(req.nextUrl.searchParams);
@@ -82,12 +71,11 @@ export async function GET(req: NextRequest) {
       validation.data;
     const offset = (page - 1) * limit;
 
-    // Verify job belongs to user
+    // MVP: Skip job ownership check - just verify job exists
     const { data: job, error: jobError } = await supabase
       .from("jobs")
       .select("id")
       .eq("id", job_id)
-      .eq("created_by", user.id)
       .single();
 
     if (jobError || !job) {

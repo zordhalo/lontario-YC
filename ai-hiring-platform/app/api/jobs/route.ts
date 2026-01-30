@@ -31,24 +31,13 @@ const listJobsSchema = z.object({
 
 /**
  * GET /api/jobs
- * List all jobs for the authenticated user
+ * List all jobs (MVP: no auth required)
  */
 export async function GET(req: NextRequest) {
   try {
     const supabase = await createClient();
 
-    // Verify authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: "Unauthorized", code: "AUTH_REQUIRED" },
-        { status: 401 }
-      );
-    }
+    // MVP: Auth disabled - all jobs accessible
 
     // Parse and validate query parameters
     const searchParams = Object.fromEntries(req.nextUrl.searchParams);
@@ -67,11 +56,10 @@ export async function GET(req: NextRequest) {
     const { status, page, limit, sort, order } = validation.data;
     const offset = (page - 1) * limit;
 
-    // Build query
+    // Build query - MVP: no user filter
     let query = supabase
       .from("jobs")
       .select("*", { count: "exact" })
-      .eq("created_by", user.id)
       .order(sort, { ascending: order === "asc" })
       .range(offset, offset + limit - 1);
 
@@ -107,26 +95,18 @@ export async function GET(req: NextRequest) {
   }
 }
 
+// MVP placeholder user ID (used when auth is disabled)
+const MVP_USER_ID = "00000000-0000-0000-0000-000000000000";
+
 /**
  * POST /api/jobs
- * Create a new job posting
+ * Create a new job posting (MVP: no auth required)
  */
 export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient();
 
-    // Verify authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-    
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: "Unauthorized", code: "AUTH_REQUIRED" },
-        { status: 401 }
-      );
-    }
+    // MVP: Auth disabled - use placeholder user ID
 
     // Parse and validate request body
     const body = await req.json();
@@ -163,7 +143,7 @@ export async function POST(req: NextRequest) {
     const { data: job, error: insertError } = await supabase
       .from("jobs")
       .insert({
-        created_by: user.id,
+        created_by: MVP_USER_ID,
         title: jobData.title,
         level: jobData.level,
         department: jobData.department,

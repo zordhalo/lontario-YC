@@ -1,13 +1,15 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import Link from "next/link"
-import { Grid3X3, List, Plus, Search } from "lucide-react"
+import { Grid3X3, List, Plus, Search, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { JobFilters } from "@/components/jobs/job-filters"
 import { JobCard } from "@/components/jobs/job-card"
-import { mockJobs, type Job } from "@/lib/mock-data"
+import { useJobs } from "@/hooks/use-jobs"
+import { normalizeJob, type Job } from "@/lib/mock-data"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function JobsPage() {
   const [view, setView] = useState<"grid" | "list">("grid")
@@ -17,17 +19,27 @@ export default function JobsPage() {
     department: [] as string[],
   })
 
-  const filteredJobs = mockJobs.filter((job) => {
-    const matchesSearch = job.title
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase())
-    const matchesStatus =
-      filters.status.length === 0 || filters.status.includes(job.status)
-    const matchesDepartment =
-      filters.department.length === 0 ||
-      filters.department.includes(job.department)
-    return matchesSearch && matchesStatus && matchesDepartment
-  })
+  // Fetch jobs from API
+  const { data, isLoading, error } = useJobs()
+
+  // Normalize and filter jobs
+  const filteredJobs = useMemo(() => {
+    if (!data?.jobs) return []
+    
+    return data.jobs
+      .map(normalizeJob)
+      .filter((job) => {
+        const matchesSearch = job.title
+          .toLowerCase()
+          .includes(searchQuery.toLowerCase())
+        const matchesStatus =
+          filters.status.length === 0 || filters.status.includes(job.status)
+        const matchesDepartment =
+          filters.department.length === 0 ||
+          (job.department && filters.department.includes(job.department))
+        return matchesSearch && matchesStatus && matchesDepartment
+      })
+  }, [data?.jobs, searchQuery, filters])
 
   return (
     <div className="container max-w-7xl mx-auto px-4 py-8">
@@ -88,7 +100,31 @@ export default function JobsPage() {
           </div>
 
           {/* Jobs Grid/List */}
-          {filteredJobs.length === 0 ? (
+          {isLoading ? (
+            <div
+              className={
+                view === "grid"
+                  ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"
+                  : "flex flex-col gap-4"
+              }
+            >
+              {[...Array(6)].map((_, i) => (
+                <Skeleton key={i} className="h-48 rounded-lg" />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+                <Search className="h-8 w-8 text-destructive" />
+              </div>
+              <h3 className="text-lg font-medium text-foreground mb-1">
+                Failed to load jobs
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                {error.message || "Please try again later"}
+              </p>
+            </div>
+          ) : filteredJobs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
                 <Search className="h-8 w-8 text-muted-foreground" />

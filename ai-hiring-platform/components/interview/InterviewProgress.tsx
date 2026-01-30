@@ -38,7 +38,7 @@ export function InterviewProgress({
               {/* Connector line */}
               {index < steps.length - 1 && (
                 <div
-                  className="absolute left-[calc(50%+20px)] right-0 top-5 h-0.5 -translate-y-1/2"
+                  className="absolute left-[calc(50%+20px)] right-[calc(-50%+20px)] top-5 h-0.5 -translate-y-1/2"
                   aria-hidden="true"
                 >
                   <div

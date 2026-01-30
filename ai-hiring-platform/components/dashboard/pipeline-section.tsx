@@ -1,15 +1,76 @@
 "use client"
 
+import { useMemo } from "react"
 import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { mockJobs } from "@/lib/mock-data"
-
-const activeJobs = mockJobs.filter((job) => job.status === "active").slice(0, 4)
+import { Skeleton } from "@/components/ui/skeleton"
+import { useJobs } from "@/hooks/use-jobs"
+import { normalizeJob } from "@/lib/mock-data"
 
 export function PipelineSection() {
+  const { data, isLoading, error } = useJobs({ status: "active" })
+
+  const activeJobs = useMemo(() => {
+    if (!data?.jobs) return []
+    return data.jobs.map(normalizeJob).slice(0, 4)
+  }, [data?.jobs])
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <CardTitle className="text-lg">Active Jobs Pipeline</CardTitle>
+          <Link href="/jobs">
+            <Button variant="ghost" size="sm" className="text-primary">
+              View all
+              <ArrowRight className="ml-1 h-4 w-4" />
+            </Button>
+          </Link>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <Skeleton key={i} className="h-32 rounded-lg" />
+          ))}
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <CardTitle className="text-lg">Active Jobs Pipeline</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">Failed to load jobs</p>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (activeJobs.length === 0) {
+    return (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <CardTitle className="text-lg">Active Jobs Pipeline</CardTitle>
+          <Link href="/jobs/new">
+            <Button variant="ghost" size="sm" className="text-primary">
+              Create job
+              <ArrowRight className="ml-1 h-4 w-4" />
+            </Button>
+          </Link>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">No active jobs yet</p>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-3">

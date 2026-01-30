@@ -19,32 +19,21 @@ interface RouteParams {
 
 /**
  * GET /api/candidates/[id]
- * Get a single candidate with full details
+ * Get a single candidate with full details (MVP: no auth required)
  */
 export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
     const supabase = await createClient();
 
-    // Verify authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: "Unauthorized", code: "AUTH_REQUIRED" },
-        { status: 401 }
-      );
-    }
+    // MVP: Auth disabled
 
     // Fetch candidate with job details
     const { data: candidate, error: candidateError } = await supabase
       .from("candidates")
       .select(`
         *,
-        job:jobs!inner(id, title, created_by, required_skills)
+        job:jobs!inner(id, title, required_skills)
       `)
       .eq("id", id)
       .single();
@@ -56,13 +45,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Verify job belongs to user
-    if (candidate.job.created_by !== user.id) {
-      return NextResponse.json(
-        { error: "Forbidden", code: "FORBIDDEN" },
-        { status: 403 }
-      );
-    }
+    // MVP: Skip job ownership check
 
     // Fetch activities
     const { data: activities } = await supabase
@@ -108,25 +91,14 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
 /**
  * PATCH /api/candidates/[id]
- * Update a candidate
+ * Update a candidate (MVP: no auth required)
  */
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
     const supabase = await createClient();
 
-    // Verify authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: "Unauthorized", code: "AUTH_REQUIRED" },
-        { status: 401 }
-      );
-    }
+    // MVP: Auth disabled
 
     // Parse and validate request body
     const body = await req.json();
@@ -139,14 +111,14 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Verify candidate belongs to user's job
+    // MVP: Skip job ownership check - verify candidate exists
     const { data: candidate } = await supabase
       .from("candidates")
-      .select("job:jobs!inner(created_by)")
+      .select("id")
       .eq("id", id)
       .single();
 
-    if (!candidate || candidate.job.created_by !== user.id) {
+    if (!candidate) {
       return NextResponse.json(
         { error: "Candidate not found", code: "NOT_FOUND" },
         { status: 404 }
@@ -184,39 +156,14 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 
 /**
  * DELETE /api/candidates/[id]
- * Delete a candidate
+ * Delete a candidate (MVP: no auth required)
  */
 export async function DELETE(req: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
     const supabase = await createClient();
 
-    // Verify authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: "Unauthorized", code: "AUTH_REQUIRED" },
-        { status: 401 }
-      );
-    }
-
-    // Verify candidate belongs to user's job
-    const { data: candidate } = await supabase
-      .from("candidates")
-      .select("job:jobs!inner(created_by)")
-      .eq("id", id)
-      .single();
-
-    if (!candidate || candidate.job.created_by !== user.id) {
-      return NextResponse.json(
-        { error: "Candidate not found", code: "NOT_FOUND" },
-        { status: 404 }
-      );
-    }
+    // MVP: Auth disabled - delete directly
 
     // Delete candidate
     const { error: deleteError } = await supabase

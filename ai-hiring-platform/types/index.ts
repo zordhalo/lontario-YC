@@ -31,11 +31,15 @@ export type EmploymentType = "full-time" | "part-time" | "contract" | "internshi
 
 export type InterviewStatus =
   | "pending"
+  | "scheduled"
+  | "ready"
   | "sent"
   | "in_progress"
   | "completed"
   | "expired"
-  | "abandoned";
+  | "abandoned"
+  | "missed"
+  | "cancelled";
 
 export type InterviewRecommendation =
   | "strong_yes"
@@ -163,6 +167,13 @@ export interface AIInterview {
   completed_at: string | null;
   created_at: string;
   updated_at: string;
+  // Scheduling fields
+  scheduled_at: string | null;
+  reminder_sent_at: string | null;
+  interview_link: string | null;
+  interview_duration_minutes: number;
+  candidate_timezone: string | null;
+  custom_message: string | null;
 }
 
 export interface InterviewQuestion {
@@ -574,6 +585,79 @@ export interface EvaluateAnswerRequest {
   answer: string;
   job_context: string;
   candidate_background: string;
+}
+
+// Interview Scheduling API
+export interface ScheduleInterviewRequest {
+  candidate_id: string;
+  job_id: string;
+  scheduled_at: string;
+  duration_minutes?: number;
+  send_immediate_invite?: boolean;
+  custom_message?: string;
+  candidate_timezone?: string;
+}
+
+export const ScheduleInterviewRequestSchema = z.object({
+  candidate_id: z.string().uuid("Invalid candidate ID"),
+  job_id: z.string().uuid("Invalid job ID"),
+  scheduled_at: z.string().datetime("Invalid datetime format"),
+  duration_minutes: z.number().min(15).max(120).optional().default(30),
+  send_immediate_invite: z.boolean().optional().default(true),
+  custom_message: z.string().max(1000).optional(),
+  candidate_timezone: z.string().optional(),
+});
+
+export interface ScheduleInterviewResponse {
+  interview: AIInterview;
+  interview_link: string;
+  questions_generated: number;
+}
+
+export interface RescheduleInterviewRequest {
+  scheduled_at: string;
+  send_notification?: boolean;
+  reschedule_reason?: string;
+}
+
+export const RescheduleInterviewRequestSchema = z.object({
+  scheduled_at: z.string().datetime("Invalid datetime format"),
+  send_notification: z.boolean().optional().default(true),
+  reschedule_reason: z.string().max(500).optional(),
+});
+
+export interface StartInterviewRequest {
+  token: string;
+}
+
+export interface StartInterviewResponse {
+  interview_id: string;
+  questions: InterviewQuestion[];
+  total_duration_minutes: number;
+  expires_at: string;
+}
+
+export interface SubmitAnswerRequest {
+  question_id: string;
+  answer: string;
+  time_spent_seconds: number;
+}
+
+export interface SubmitInterviewRequest {
+  answers: SubmitAnswerRequest[];
+}
+
+export interface SubmitInterviewResponse {
+  interview_id: string;
+  status: InterviewStatus;
+  overall_score: number | null;
+  summary: string | null;
+}
+
+// Scheduled interview with related data for display
+export interface ScheduledInterviewWithDetails extends AIInterview {
+  candidate?: Pick<Candidate, "id" | "full_name" | "email">;
+  job?: Pick<Job, "id" | "title" | "department">;
 }
 
 // ============================================================

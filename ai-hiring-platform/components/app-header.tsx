@@ -3,15 +3,12 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
-  Bell,
   Briefcase,
   ChevronDown,
   LayoutDashboard,
-  LineChart,
   MessageSquare,
   Search,
   Settings,
-  Users,
   Sparkles,
 } from "lucide-react"
 
@@ -27,14 +24,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Jobs", href: "/jobs", icon: Briefcase },
-  { name: "Candidates", href: "/candidates", icon: Users },
   { name: "AI Interview", href: "/interview", icon: MessageSquare },
-  { name: "Analytics", href: "/analytics", icon: LineChart },
 ]
 
 export function AppHeader() {
@@ -97,41 +91,6 @@ export function AppHeader() {
               Create Job
             </Button>
           </Link>
-
-          {/* Notifications */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative">
-                <Bell className="h-5 w-5" />
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px]">
-                  3
-                </Badge>
-                <span className="sr-only">Notifications</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
-              <DropdownMenuLabel>Notifications</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="flex flex-col items-start gap-1 py-3">
-                <span className="font-medium">5 candidates scored 90%+</span>
-                <span className="text-sm text-muted-foreground">
-                  Senior Backend Engineer position
-                </span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="flex flex-col items-start gap-1 py-3">
-                <span className="font-medium">AI interview completed</span>
-                <span className="text-sm text-muted-foreground">
-                  John Doe finished screening
-                </span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="flex flex-col items-start gap-1 py-3">
-                <span className="font-medium">New application received</span>
-                <span className="text-sm text-muted-foreground">
-                  Frontend Developer position
-                </span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
 
           {/* User Menu */}
           <DropdownMenu>

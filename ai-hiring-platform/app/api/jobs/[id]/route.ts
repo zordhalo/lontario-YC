@@ -32,32 +32,20 @@ interface RouteParams {
 
 /**
  * GET /api/jobs/[id]
- * Get a single job with candidate summary
+ * Get a single job with candidate summary (MVP: no auth required)
  */
 export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
     const supabase = await createClient();
 
-    // Verify authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: "Unauthorized", code: "AUTH_REQUIRED" },
-        { status: 401 }
-      );
-    }
+    // MVP: Auth disabled
 
     // Fetch job
     const { data: job, error: jobError } = await supabase
       .from("jobs")
       .select("*")
       .eq("id", id)
-      .eq("created_by", user.id)
       .single();
 
     if (jobError || !job) {
@@ -116,25 +104,14 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 
 /**
  * PUT /api/jobs/[id]
- * Update a job
+ * Update a job (MVP: no auth required)
  */
 export async function PUT(req: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
     const supabase = await createClient();
 
-    // Verify authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: "Unauthorized", code: "AUTH_REQUIRED" },
-        { status: 401 }
-      );
-    }
+    // MVP: Auth disabled
 
     // Parse and validate request body
     const body = await req.json();
@@ -162,7 +139,6 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       .from("jobs")
       .update(updateData)
       .eq("id", id)
-      .eq("created_by", user.id)
       .select()
       .single();
 
@@ -193,32 +169,20 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
 
 /**
  * DELETE /api/jobs/[id]
- * Delete a job
+ * Delete a job (MVP: no auth required)
  */
 export async function DELETE(req: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
     const supabase = await createClient();
 
-    // Verify authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: "Unauthorized", code: "AUTH_REQUIRED" },
-        { status: 401 }
-      );
-    }
+    // MVP: Auth disabled
 
     // Delete job (cascades to candidates)
     const { error: deleteError } = await supabase
       .from("jobs")
       .delete()
-      .eq("id", id)
-      .eq("created_by", user.id);
+      .eq("id", id);
 
     if (deleteError) {
       console.error("Delete error:", deleteError);

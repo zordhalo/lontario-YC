@@ -25,27 +25,19 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
+// MVP placeholder user ID (used when auth is disabled)
+const MVP_USER_ID = "00000000-0000-0000-0000-000000000000";
+
 /**
  * POST /api/candidates/[id]/move
- * Move a candidate to a new stage
+ * Move a candidate to a new stage (MVP: no auth required)
  */
 export async function POST(req: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
     const supabase = await createClient();
 
-    // Verify authentication
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: "Unauthorized", code: "AUTH_REQUIRED" },
-        { status: 401 }
-      );
-    }
+    // MVP: Auth disabled
 
     // Parse and validate request body
     const body = await req.json();
@@ -68,14 +60,14 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Fetch candidate and verify ownership
+    // Fetch candidate
     const { data: candidate, error: candidateError } = await supabase
       .from("candidates")
       .select(`
         id,
         stage,
         full_name,
-        job:jobs!inner(id, created_by, title)
+        job:jobs!inner(id, title)
       `)
       .eq("id", id)
       .single();
@@ -87,12 +79,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    if (candidate.job.created_by !== user.id) {
-      return NextResponse.json(
-        { error: "Forbidden", code: "FORBIDDEN" },
-        { status: 403 }
-      );
-    }
+    // MVP: Skip job ownership check
 
     const oldStage = candidate.stage as CandidateStage;
 
@@ -127,7 +114,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       .from("candidate_activities")
       .insert({
         candidate_id: id,
-        performed_by: user.id,
+        performed_by: MVP_USER_ID,
         activity_type: stage === "rejected" ? "rejected" : "stage_changed",
         old_value: oldStage,
         new_value: stage,
