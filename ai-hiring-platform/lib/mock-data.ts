@@ -1,14 +1,14 @@
 // Types for API data normalization
 // These provide compatibility between API responses (snake_case) and UI components (camelCase)
 
+// Valid candidate stages matching the database schema
 export type CandidateStatus = 
   | "applied" 
-  | "screened" 
   | "screening"
-  | "interview" 
   | "ai_interview"
   | "phone_screen"
   | "technical"
+  | "onsite"
   | "offer" 
   | "hired" 
   | "rejected"
@@ -60,6 +60,8 @@ export interface Job {
   total_applicants?: number
   topMatches: number
   active_candidates?: number
+  isArchived: boolean
+  is_archived?: boolean
   createdAt: string
   created_at?: string
   description?: string
@@ -121,6 +123,8 @@ export function normalizeJob(data: Partial<Job>): Job {
     total_applicants: data.total_applicants ?? data.applicants,
     topMatches: data.topMatches ?? data.active_candidates ?? 0,
     active_candidates: data.active_candidates ?? data.topMatches,
+    isArchived: data.isArchived ?? data.is_archived ?? false,
+    is_archived: data.is_archived ?? data.isArchived,
     createdAt: data.createdAt || data.created_at || new Date().toISOString(),
     created_at: data.created_at || data.createdAt,
     description: data.description,

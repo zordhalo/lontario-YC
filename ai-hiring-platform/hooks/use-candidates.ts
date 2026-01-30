@@ -93,6 +93,32 @@ async function deleteCandidate(id: string): Promise<void> {
   }
 }
 
+interface CreateCandidateData {
+  job_id: string;
+  email: string;
+  full_name: string;
+  phone?: string;
+  location?: string;
+  linkedin_url?: string;
+  github_url?: string;
+  portfolio_url?: string;
+  cover_letter?: string;
+  source?: string;
+}
+
+async function createCandidate(data: CreateCandidateData): Promise<Candidate> {
+  const response = await fetch("/api/candidates", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to create candidate");
+  }
+  return response.json();
+}
+
 // Hooks
 export function useCandidates(filters: ListCandidatesQuery) {
   return useQuery({
@@ -265,6 +291,27 @@ export function useBulkMoveCandiates() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: candidateKeys.all });
+    },
+  });
+}
+
+export function useCreateCandidate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: createCandidate,
+    onSuccess: () => {
+      // Invalidate all candidate lists to refresh the data immediately
+      queryClient.invalidateQueries({ queryKey: candidateKeys.lists() });
+      
+      // Schedule additional refetches to pick up AI scoring results
+      // AI scoring happens asynchronously and may take a few seconds
+      const refetchDelays = [3000, 8000, 15000]; // 3s, 8s, 15s
+      refetchDelays.forEach((delay) => {
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: candidateKeys.lists() });
+        }, delay);
+      });
     },
   });
 }

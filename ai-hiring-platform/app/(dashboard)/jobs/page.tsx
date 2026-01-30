@@ -17,10 +17,13 @@ export default function JobsPage() {
   const [filters, setFilters] = useState({
     status: ["active"],
     department: [] as string[],
+    showArchived: false,
   })
 
-  // Fetch jobs from API
-  const { data, isLoading, error } = useJobs()
+  // Fetch jobs from API with archive filter
+  const { data, isLoading, error } = useJobs({ 
+    include_archived: filters.showArchived 
+  })
 
   // Normalize and filter jobs
   const filteredJobs = useMemo(() => {
@@ -37,6 +40,8 @@ export default function JobsPage() {
         const matchesDepartment =
           filters.department.length === 0 ||
           (job.department && filters.department.includes(job.department))
+        // When showArchived is false, API already filters them out
+        // When showArchived is true, show all jobs (archived and non-archived)
         return matchesSearch && matchesStatus && matchesDepartment
       })
   }, [data?.jobs, searchQuery, filters])

@@ -8,10 +8,12 @@ interface JobFiltersProps {
   filters: {
     status: string[]
     department: string[]
+    showArchived: boolean
   }
   onFiltersChange: (filters: {
     status: string[]
     department: string[]
+    showArchived: boolean
   }) => void
 }
 
@@ -95,6 +97,25 @@ export function JobFilters({ filters, onFiltersChange }: JobFiltersProps) {
                 </Label>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Archive Filter */}
+        <div className="space-y-3 pt-3 border-t border-border">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="show-archived"
+              checked={filters.showArchived}
+              onCheckedChange={(checked) =>
+                onFiltersChange({ ...filters, showArchived: checked as boolean })
+              }
+            />
+            <Label
+              htmlFor="show-archived"
+              className="text-sm font-normal text-muted-foreground cursor-pointer"
+            >
+              Show archived jobs
+            </Label>
           </div>
         </div>
       </CardContent>

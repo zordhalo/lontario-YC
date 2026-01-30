@@ -177,3 +177,27 @@ export function useCloseJob() {
     },
   });
 }
+
+export function useArchiveJob() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => updateJob(id, { is_archived: true }),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: jobKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: jobKeys.lists() });
+    },
+  });
+}
+
+export function useUnarchiveJob() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => updateJob(id, { is_archived: false }),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: jobKeys.detail(id) });
+      queryClient.invalidateQueries({ queryKey: jobKeys.lists() });
+    },
+  });
+}

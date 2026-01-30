@@ -32,6 +32,9 @@ const SubmitInterviewSchema = z.object({
  *
  * This endpoint processes all answers, evaluates them with AI,
  * calculates the overall score, and completes the interview.
+ * 
+ * The [id] parameter can be either the interview ID or the access_token.
+ * For public interview links, the access_token is used as the route param.
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
@@ -56,8 +59,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Use admin client since this is a public endpoint
     const supabase = createAdminClient();
 
-    // Fetch interview and validate token
-    const { data: interview, error: fetchError } = await supabase
+    // Build query - support lookup by access_token (for public interview links)
+    let query = supabase
       .from("ai_interviews")
       .select(
         `
@@ -76,10 +79,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           required_skills
         )
       `
-      )
-      .eq("id", id)
-      .eq("access_token", token)
-      .single();
+      );
+
+    // If token matches id, look up by access_token (public interview link pattern)
+    if (token === id) {
+      query = query.eq("access_token", token);
+    } else {
+      query = query.eq("id", id).eq("access_token", token);
+    }
+
+    const { data: interview, error: fetchError } = await query.single();
 
     if (fetchError || !interview) {
       return NextResponse.json(
@@ -90,6 +99,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         { status: 401 }
       );
     }
+    
+    // Use the actual interview ID for all subsequent operations
+    const interviewId = interview.id;
 
     // Check if interview can accept submissions
     if (interview.status === "completed") {
@@ -118,7 +130,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       await supabase
         .from("ai_interviews")
         .update({ status: "expired" })
-        .eq("id", id);
+        .eq("id", interviewId);
 
       return NextResponse.json(
         {
@@ -133,7 +145,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { data: questions, error: questionsError } = await supabase
       .from("interview_questions")
       .select("*")
-      .eq("interview_id", id);
+      .eq("interview_id", interviewId);
 
     if (questionsError || !questions) {
       return NextResponse.json(
@@ -268,7 +280,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         recommendation,
         updated_at: now.toISOString(),
       })
-      .eq("id", id);
+      .eq("id", interviewId);
 
     if (updateError) {
       console.error("Failed to complete interview:", updateError);
@@ -294,7 +306,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       candidate_id: interview.candidate_id,
       activity_type: "interview_completed",
       metadata: {
-        interview_id: id,
+        interview_id: interviewId,
         overall_score: overallScore,
         questions_answered: answers.length,
         recommendation,
@@ -304,7 +316,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
 
     const response: SubmitInterviewResponse = {
-      interview_id: id,
+      interview_id: interviewId,
       status: "completed",
       overall_score: overallScore,
       summary: aiSummary,
@@ -326,6 +338,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 /**
  * PATCH /api/interviews/[id]/submit
  * Submit a single answer (for real-time saving)
+ * 
+ * The [id] parameter can be either the interview ID or the access_token.
+ * For public interview links, the access_token is used as the route param.
  */
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
@@ -346,13 +361,19 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     const supabase = createAdminClient();
 
-    // Verify interview token
-    const { data: interview, error: fetchError } = await supabase
+    // Build query - support lookup by access_token (for public interview links)
+    let query = supabase
       .from("ai_interviews")
-      .select("id, status, candidate_id")
-      .eq("id", id)
-      .eq("access_token", token)
-      .single();
+      .select("id, status, candidate_id");
+
+    // If token matches id, look up by access_token (public interview link pattern)
+    if (token === id) {
+      query = query.eq("access_token", token);
+    } else {
+      query = query.eq("id", id).eq("access_token", token);
+    }
+
+    const { data: interview, error: fetchError } = await query.single();
 
     if (fetchError || !interview) {
       return NextResponse.json(
@@ -363,6 +384,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         { status: 401 }
       );
     }
+
+    // Use the actual interview ID for all subsequent operations
+    const interviewId = interview.id;
 
     if (!["in_progress", "scheduled", "ready"].includes(interview.status)) {
       return NextResponse.json(
@@ -384,7 +408,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         time_spent_seconds: time_spent_seconds || 0,
       })
       .eq("id", question_id)
-      .eq("interview_id", id);
+      .eq("interview_id", interviewId);
 
     if (updateError) {
       console.error("Failed to save answer:", updateError);
@@ -401,7 +425,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const { count } = await supabase
       .from("interview_questions")
       .select("id", { count: "exact" })
-      .eq("interview_id", id)
+      .eq("interview_id", interviewId)
       .not("candidate_answer", "is", null);
 
     await supabase
@@ -410,7 +434,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         questions_answered: count || 0,
         updated_at: now.toISOString(),
       })
-      .eq("id", id);
+      .eq("id", interviewId);
 
     return NextResponse.json({
       success: true,

@@ -1,8 +1,10 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import {
   Archive,
+  ArchiveRestore,
   Edit,
   ExternalLink,
   MapPin,
@@ -21,7 +23,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Progress } from "@/components/ui/progress"
+import { useArchiveJob, useUnarchiveJob } from "@/hooks/use-jobs"
+import { useToast } from "@/hooks/use-toast"
 import type { Job } from "@/lib/mock-data"
 
 interface JobCardProps {
@@ -45,7 +59,10 @@ export function JobCard({ job, variant = "grid" }: JobCardProps) {
 
   if (variant === "list") {
     return (
-      <Card className="group hover:border-primary/30 transition-colors">
+      <Card className={cn(
+        "group hover:border-primary/30 transition-colors",
+        job.isArchived && "opacity-60"
+      )}>
         <CardContent className="p-4">
           <div className="flex items-center gap-4">
             <div className="flex-1 min-w-0">
@@ -62,6 +79,11 @@ export function JobCard({ job, variant = "grid" }: JobCardProps) {
                 >
                   {job.status}
                 </Badge>
+                {job.isArchived && (
+                  <Badge variant="outline" className="shrink-0 bg-muted text-muted-foreground">
+                    Archived
+                  </Badge>
+                )}
               </div>
               <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <span>{job.department}</span>
@@ -96,7 +118,10 @@ export function JobCard({ job, variant = "grid" }: JobCardProps) {
   }
 
   return (
-    <Card className="group hover:border-primary/30 hover:shadow-md transition-all">
+    <Card className={cn(
+      "group hover:border-primary/30 hover:shadow-md transition-all",
+      job.isArchived && "opacity-60"
+    )}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
           <div className="space-y-1 min-w-0">
@@ -108,12 +133,19 @@ export function JobCard({ job, variant = "grid" }: JobCardProps) {
             </Link>
             <p className="text-sm text-muted-foreground">{job.department}</p>
           </div>
-          <Badge
-            variant="outline"
-            className={cn("capitalize shrink-0", statusColors[job.status])}
-          >
-            {job.status}
-          </Badge>
+          <div className="flex flex-col items-end gap-1">
+            <Badge
+              variant="outline"
+              className={cn("capitalize shrink-0", statusColors[job.status])}
+            >
+              {job.status}
+            </Badge>
+            {job.isArchived && (
+              <Badge variant="outline" className="shrink-0 bg-muted text-muted-foreground text-xs">
+                Archived
+              </Badge>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="pt-0 space-y-4">
@@ -163,29 +195,105 @@ export function JobCard({ job, variant = "grid" }: JobCardProps) {
 }
 
 function JobActions({ job }: { job: Job }) {
+  const [showArchiveDialog, setShowArchiveDialog] = useState(false)
+  const archiveJob = useArchiveJob()
+  const unarchiveJob = useUnarchiveJob()
+  const { toast } = useToast()
+
+  const isArchived = job.isArchived
+
+  const handleArchive = async () => {
+    try {
+      await archiveJob.mutateAsync(job.id)
+      toast({
+        title: "Job archived",
+        description: `"${job.title}" has been archived and will no longer appear in the default job list.`,
+      })
+    } catch (error) {
+      toast({
+        title: "Failed to archive job",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      })
+    }
+    setShowArchiveDialog(false)
+  }
+
+  const handleUnarchive = async () => {
+    try {
+      await unarchiveJob.mutateAsync(job.id)
+      toast({
+        title: "Job restored",
+        description: `"${job.title}" has been restored and is now visible in the job list.`,
+      })
+    } catch (error) {
+      toast({
+        title: "Failed to restore job",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      })
+    }
+  }
+
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8">
-          <MoreHorizontal className="h-4 w-4" />
-          <span className="sr-only">More actions</span>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem>
-          <Edit className="mr-2 h-4 w-4" />
-          Edit Job
-        </DropdownMenuItem>
-        <DropdownMenuItem>
-          <ExternalLink className="mr-2 h-4 w-4" />
-          Share Link
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-destructive">
-          <Archive className="mr-2 h-4 w-4" />
-          Archive
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon" className="h-8 w-8">
+            <MoreHorizontal className="h-4 w-4" />
+            <span className="sr-only">More actions</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem asChild>
+            <Link href={`/jobs/${job.id}`}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit Job
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            <ExternalLink className="mr-2 h-4 w-4" />
+            Share Link
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {isArchived ? (
+            <DropdownMenuItem onClick={handleUnarchive}>
+              <ArchiveRestore className="mr-2 h-4 w-4" />
+              Restore
+            </DropdownMenuItem>
+          ) : (
+            <DropdownMenuItem 
+              className="text-destructive"
+              onClick={() => setShowArchiveDialog(true)}
+            >
+              <Archive className="mr-2 h-4 w-4" />
+              Archive
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <AlertDialog open={showArchiveDialog} onOpenChange={setShowArchiveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive this job?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Archiving &quot;{job.title}&quot; will hide it from the default job list. 
+              You can still view archived jobs by enabling the &quot;Show archived&quot; filter. 
+              This action can be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleArchive}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Archive
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }

@@ -12,11 +12,14 @@ export const PIPELINE_STAGES = [
   { id: "hired", label: "Hired", color: "bg-green-500", description: "Accepted offer" },
 ] as const;
 
-// Simplified pipeline for Kanban board
+// Simplified pipeline for Kanban board (matches database stages)
 export const KANBAN_STAGES = [
   { id: "applied", label: "Applied", color: "bg-gray-500" },
-  { id: "screened", label: "Screened", color: "bg-blue-500" },
-  { id: "interview", label: "Interview", color: "bg-purple-500" },
+  { id: "screening", label: "Screening", color: "bg-blue-500" },
+  { id: "ai_interview", label: "AI Interview", color: "bg-purple-500" },
+  { id: "phone_screen", label: "Phone Screen", color: "bg-indigo-500" },
+  { id: "technical", label: "Technical", color: "bg-cyan-500" },
+  { id: "onsite", label: "Onsite", color: "bg-teal-500" },
   { id: "offer", label: "Offer", color: "bg-amber-500" },
   { id: "hired", label: "Hired", color: "bg-green-500" },
 ] as const;

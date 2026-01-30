@@ -348,8 +348,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Transform the response to match the expected type
+    // Supabase returns `candidates` and `jobs` (plural) from the join aliases,
+    // but the frontend expects `candidate` and `job` (singular)
+    const transformedInterviews = (interviews || []).map((interview) => {
+      const { candidates, jobs, ...rest } = interview as Record<string, unknown>;
+      return {
+        ...rest,
+        candidate: candidates || null,
+        job: jobs || null,
+      };
+    });
+
     return NextResponse.json({
-      interviews: interviews || [],
+      interviews: transformedInterviews,
       pagination: {
         total: count || 0,
         limit,

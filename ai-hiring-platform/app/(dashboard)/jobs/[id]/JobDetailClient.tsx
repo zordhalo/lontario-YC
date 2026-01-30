@@ -2,8 +2,9 @@
 
 import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
-import { Settings, Loader2 } from "lucide-react"
+import { Settings, Loader2, Archive, ArchiveRestore } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { AddCandidateDialog } from "@/components/jobs/add-candidate-dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -15,11 +16,23 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { KanbanBoard } from "@/components/jobs/kanban-board"
 import { JobDetails } from "@/components/jobs/job-details"
 import { CandidatePanel } from "@/components/jobs/candidate-panel"
-import { useJob } from "@/hooks/use-jobs"
+import { useJob, useArchiveJob, useUnarchiveJob } from "@/hooks/use-jobs"
 import { useCandidates, useMoveCandidate } from "@/hooks/use-candidates"
+import { useToast } from "@/hooks/use-toast"
 import { normalizeJob, normalizeCandidate, type Candidate, type CandidateStatus } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 
@@ -39,6 +52,10 @@ export default function JobDetailClient({ jobId }: JobDetailClientProps) {
   const { data: jobData, isLoading: jobLoading, error: jobError } = useJob(jobId)
   const { data: candidatesData, isLoading: candidatesLoading } = useCandidates({ job_id: jobId })
   const moveCandidate = useMoveCandidate()
+  const archiveJob = useArchiveJob()
+  const unarchiveJob = useUnarchiveJob()
+  const { toast } = useToast()
+  const [showArchiveDialog, setShowArchiveDialog] = useState(false)
 
   // Normalize data
   const job = useMemo(() => {
@@ -147,6 +164,39 @@ export default function JobDetailClient({ jobId }: JobDetailClientProps) {
     }))
   }
 
+  const handleArchive = async () => {
+    try {
+      await archiveJob.mutateAsync(jobId)
+      toast({
+        title: "Job archived",
+        description: `"${job.title}" has been archived and will no longer appear in the default job list.`,
+      })
+    } catch (error) {
+      toast({
+        title: "Failed to archive job",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      })
+    }
+    setShowArchiveDialog(false)
+  }
+
+  const handleUnarchive = async () => {
+    try {
+      await unarchiveJob.mutateAsync(jobId)
+      toast({
+        title: "Job restored",
+        description: `"${job.title}" has been restored and is now visible in the job list.`,
+      })
+    } catch (error) {
+      toast({
+        title: "Failed to restore job",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      })
+    }
+  }
+
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col">
       {/* Header */}
@@ -182,6 +232,11 @@ export default function JobDetailClient({ jobId }: JobDetailClientProps) {
                   >
                     {job.status}
                   </Badge>
+                  {job.isArchived && (
+                    <Badge variant="outline" className="bg-muted text-muted-foreground">
+                      Archived
+                    </Badge>
+                  )}
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {job.department} &bull; {job.location} &bull; {job.type}
@@ -189,6 +244,52 @@ export default function JobDetailClient({ jobId }: JobDetailClientProps) {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <AddCandidateDialog 
+                jobId={jobId} 
+                onSuccess={() => {
+                  // Data will be automatically refreshed via React Query
+                }}
+              />
+              {job.isArchived ? (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleUnarchive}
+                  disabled={unarchiveJob.isPending}
+                >
+                  <ArchiveRestore className="mr-2 h-4 w-4" />
+                  {unarchiveJob.isPending ? "Restoring..." : "Restore"}
+                </Button>
+              ) : (
+                <AlertDialog open={showArchiveDialog} onOpenChange={setShowArchiveDialog}>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <Archive className="mr-2 h-4 w-4" />
+                      Archive
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Archive this job?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Archiving &quot;{job.title}&quot; will hide it from the default job list. 
+                        You can still view archived jobs by enabling the &quot;Show archived&quot; filter. 
+                        This action can be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction 
+                        onClick={handleArchive}
+                        disabled={archiveJob.isPending}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        {archiveJob.isPending ? "Archiving..." : "Archive"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
               <Button variant="outline" size="sm">
                 <Settings className="mr-2 h-4 w-4" />
                 Settings
@@ -251,6 +352,8 @@ export default function JobDetailClient({ jobId }: JobDetailClientProps) {
                     candidateStatuses[selectedCandidate.id] ||
                     selectedCandidate.status,
                 }}
+                jobId={jobId}
+                jobTitle={job.title}
                 onClose={() => setSelectedCandidate(null)}
                 onStatusChange={(status) =>
                   handleStatusChange(selectedCandidate.id, status)

@@ -12,12 +12,15 @@ interface RouteParams {
  *
  * This endpoint is used by the public interview page.
  * Authentication is via the access_token, not user session.
+ * 
+ * The [id] parameter can be either the interview ID or the access_token.
+ * For public interview links, the access_token is used as the route param.
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
     const body = await request.json();
-    const { token } = body;
+    const { token, force_start } = body;
 
     if (!token) {
       return NextResponse.json(
@@ -32,8 +35,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // Use admin client since this is a public endpoint (no user session)
     const supabase = createAdminClient();
 
-    // Fetch interview by ID and validate token
-    const { data: interview, error: fetchError } = await supabase
+    // Build query - support lookup by access_token (for public interview links)
+    let query = supabase
       .from("ai_interviews")
       .select(
         `
@@ -45,10 +48,19 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           level
         )
       `
-      )
-      .eq("id", id)
-      .eq("access_token", token)
-      .single();
+      );
+
+    // If token matches id, look up by access_token (public interview link pattern)
+    // Otherwise, look up by interview ID with token validation
+    if (token === id) {
+      // Public interview link: /interview/[access_token] calls /api/interviews/[access_token]/start
+      query = query.eq("access_token", token);
+    } else {
+      // Admin/internal: lookup by ID with token validation
+      query = query.eq("id", id).eq("access_token", token);
+    }
+
+    const { data: interview, error: fetchError } = await query.single();
 
     if (fetchError || !interview) {
       return NextResponse.json(
@@ -66,6 +78,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       : null;
     const expiresAt = new Date(interview.expires_at);
 
+    // Use the actual interview ID for all subsequent operations
+    const interviewId = interview.id;
+
     // Check if interview has expired
     if (now > expiresAt) {
       // Update status to expired if not already
@@ -73,7 +88,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         await supabase
           .from("ai_interviews")
           .update({ status: "expired" })
-          .eq("id", id);
+          .eq("id", interviewId);
       }
 
       return NextResponse.json(
@@ -103,11 +118,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       const { data: questions } = await supabase
         .from("interview_questions")
         .select("*")
-        .eq("interview_id", id)
+        .eq("interview_id", interviewId)
         .order("question_order", { ascending: true });
 
       const response: StartInterviewResponse = {
-        interview_id: interview.id,
+        interview_id: interviewId,
         questions: questions || [],
         total_duration_minutes: interview.interview_duration_minutes || 30,
         expires_at: interview.expires_at,
@@ -117,7 +132,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check if it's too early (before scheduled time minus 5 minute grace period)
-    if (scheduledAt) {
+    // Skip this check if force_start is true (allows manual start before scheduled time)
+    if (scheduledAt && !force_start) {
       const graceperiod = 5 * 60 * 1000; // 5 minutes in milliseconds
       const canStartAt = new Date(scheduledAt.getTime() - graceperiod);
 
@@ -149,7 +165,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         started_at: now.toISOString(),
         updated_at: now.toISOString(),
       })
-      .eq("id", id);
+      .eq("id", interviewId);
 
     if (updateError) {
       console.error("Failed to start interview:", updateError);
@@ -166,7 +182,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { data: questions, error: questionsError } = await supabase
       .from("interview_questions")
       .select("*")
-      .eq("interview_id", id)
+      .eq("interview_id", interviewId)
       .order("question_order", { ascending: true });
 
     if (questionsError) {
@@ -185,7 +201,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       candidate_id: interview.candidate_id,
       activity_type: "interview_started",
       metadata: {
-        interview_id: id,
+        interview_id: interviewId,
         started_at: now.toISOString(),
       },
       notes: "Candidate started the AI interview",
@@ -193,7 +209,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     });
 
     const response: StartInterviewResponse = {
-      interview_id: interview.id,
+      interview_id: interviewId,
       questions: questions || [],
       total_duration_minutes: interview.interview_duration_minutes || 30,
       expires_at: interview.expires_at,
@@ -215,6 +231,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 /**
  * GET /api/interviews/[id]/start
  * Check interview status and availability (for pre-flight check)
+ * 
+ * The [id] parameter can be either the interview ID or the access_token.
+ * If a token query param is provided, we validate both match.
+ * If no token query param is provided, we look up by access_token only (for public interview links).
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
@@ -222,20 +242,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { searchParams } = new URL(request.url);
     const token = searchParams.get("token");
 
-    if (!token) {
-      return NextResponse.json(
-        {
-          error: "Access token is required",
-          code: "TOKEN_REQUIRED",
-        },
-        { status: 400 }
-      );
-    }
-
     const supabase = createAdminClient();
 
-    // Fetch interview by ID and validate token
-    const { data: interview, error: fetchError } = await supabase
+    // Build query - support lookup by access_token (for public interview links)
+    // The URL /interview/[token] passes the access_token as both the route param and query param
+    let query = supabase
       .from("ai_interviews")
       .select(
         `
@@ -253,10 +264,22 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           level
         )
       `
-      )
-      .eq("id", id)
-      .eq("access_token", token)
-      .single();
+      );
+
+    // If token is provided and matches id, look up by access_token (public interview link pattern)
+    // Otherwise, look up by interview ID with token validation
+    if (token && token === id) {
+      // Public interview link: /interview/[access_token] calls /api/interviews/[access_token]/start?token=[access_token]
+      query = query.eq("access_token", token);
+    } else if (token) {
+      // Admin/internal: lookup by ID with token validation
+      query = query.eq("id", id).eq("access_token", token);
+    } else {
+      // No token provided - try lookup by access_token first (most common for candidate access)
+      query = query.eq("access_token", id);
+    }
+
+    const { data: interview, error: fetchError } = await query.single();
 
     if (fetchError || !interview) {
       return NextResponse.json(

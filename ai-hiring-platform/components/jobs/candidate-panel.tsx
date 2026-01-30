@@ -9,7 +9,9 @@ import {
   Github,
   Globe,
   Linkedin,
+  Loader2,
   Mail,
+  Trash2,
   X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -23,9 +25,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { AIScoreBadge } from "@/components/ai-score-badge"
 import { ScheduleDialog } from "@/components/interview"
 import { useToast } from "@/hooks/use-toast"
+import { useDeleteCandidate } from "@/hooks/use-candidates"
 import type { Candidate } from "@/lib/mock-data"
 
 interface CandidatePanelProps {
@@ -39,8 +52,11 @@ interface CandidatePanelProps {
 
 const statusOptions: { value: Candidate["status"]; label: string }[] = [
   { value: "applied", label: "Applied" },
-  { value: "screened", label: "Screened" },
-  { value: "interview", label: "Interview" },
+  { value: "screening", label: "Screening" },
+  { value: "ai_interview", label: "AI Interview" },
+  { value: "phone_screen", label: "Phone Screen" },
+  { value: "technical", label: "Technical" },
+  { value: "onsite", label: "Onsite" },
   { value: "offer", label: "Offer" },
   { value: "hired", label: "Hired" },
   { value: "rejected", label: "Rejected" },

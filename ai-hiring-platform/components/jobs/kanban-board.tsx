@@ -15,8 +15,11 @@ interface KanbanBoardProps {
 
 const columns: { status: Candidate["status"]; label: string }[] = [
   { status: "applied", label: "Applied" },
-  { status: "screened", label: "Screened" },
-  { status: "interview", label: "Interview" },
+  { status: "screening", label: "Screening" },
+  { status: "ai_interview", label: "AI Interview" },
+  { status: "phone_screen", label: "Phone Screen" },
+  { status: "technical", label: "Technical" },
+  { status: "onsite", label: "Onsite" },
   { status: "offer", label: "Offer" },
   { status: "hired", label: "Hired" },
 ]

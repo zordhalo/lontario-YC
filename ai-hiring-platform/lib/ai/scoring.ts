@@ -1,0 +1,235 @@
+import { createClient } from "@/lib/supabase/server";
+import {
+  fetchGitHubProfile,
+  extractGitHubUsername,
+  isGitHubUrl,
+  scoreCandidate,
+} from "@/lib/ai";
+import type { CandidateProfile, MatchScore, Job } from "@/types";
+
+interface CandidateForScoring {
+  id: string;
+  job_id: string;
+  full_name: string;
+  email: string;
+  github_url?: string | null;
+  linkedin_url?: string | null;
+  cover_letter?: string | null;
+  resume_text?: string | null;
+}
+
+interface ScoringResult {
+  success: boolean;
+  ai_score?: number;
+  ai_summary?: string;
+  ai_strengths?: string[];
+  ai_concerns?: string[];
+  ai_score_breakdown?: MatchScore["breakdown"];
+  extracted_skills?: string[];
+  error?: string;
+}
+
+/**
+ * Fetches candidate profile data from GitHub (and potentially LinkedIn)
+ * Returns a CandidateProfile with skills and experience extracted
+ */
+async function fetchCandidateProfileData(
+  candidate: CandidateForScoring
+): Promise<{ profile: CandidateProfile | null; resumeText: string }> {
+  let profile: CandidateProfile | null = null;
+  let resumeText = candidate.resume_text || candidate.cover_letter || "";
+
+  // Try to fetch GitHub profile if URL provided
+  if (candidate.github_url) {
+    try {
+      const username = extractGitHubUsername(candidate.github_url);
+      if (username) {
+        profile = await fetchGitHubProfile(username);
+        // Build resume text from GitHub data
+        const githubText = [
+          `Name: ${profile.name}`,
+          profile.bio ? `Bio: ${profile.bio}` : "",
+          `Skills: ${profile.skills.join(", ")}`,
+          `Experience:`,
+          ...profile.experience.map((e) => `- ${e}`),
+          profile.projects
+            ? `Projects: ${profile.projects.map((p) => `${p.name} (${p.language}, ${p.stars} stars)`).join("; ")}`
+            : "",
+        ]
+          .filter(Boolean)
+          .join("\n");
+
+        resumeText = resumeText
+          ? `${resumeText}\n\n--- GitHub Profile ---\n${githubText}`
+          : githubText;
+      }
+    } catch (error) {
+      console.error("Failed to fetch GitHub profile:", error);
+      // Continue without GitHub data
+    }
+  }
+
+  // If no profile fetched, create a minimal one from available data
+  if (!profile) {
+    profile = {
+      source: "manual",
+      name: candidate.full_name,
+      skills: [],
+      experience: [],
+    };
+
+    // Try to extract some info from cover letter if available
+    if (candidate.cover_letter) {
+      resumeText = candidate.cover_letter;
+    }
+  }
+
+  return { profile, resumeText };
+}
+
+/**
+ * Scores a candidate against a job using AI
+ * Fetches profile data, calls scoring API, and returns results
+ */
+export async function scoreCandidateForJob(
+  candidate: CandidateForScoring
+): Promise<ScoringResult> {
+  try {
+    const supabase = await createClient();
+
+    // Fetch the job details
+    const { data: job, error: jobError } = await supabase
+      .from("jobs")
+      .select("*")
+      .eq("id", candidate.job_id)
+      .single();
+
+    if (jobError || !job) {
+      return {
+        success: false,
+        error: "Job not found",
+      };
+    }
+
+    // Fetch candidate profile data from GitHub/LinkedIn
+    const { profile, resumeText } = await fetchCandidateProfileData(candidate);
+
+    // If we don't have enough data to score, return early
+    if (!resumeText || resumeText.length < 50) {
+      // Not enough data for AI scoring - set a default score
+      return {
+        success: true,
+        ai_score: 0,
+        ai_summary:
+          "Insufficient profile data for AI scoring. Add a resume, cover letter, or GitHub profile for better matching.",
+        ai_strengths: [],
+        ai_concerns: ["No resume or profile data available for analysis"],
+        extracted_skills: profile?.skills || [],
+      };
+    }
+
+    // Prepare data for scoring
+    const candidateData = {
+      skills: profile?.skills || [],
+      experience: profile?.experience || [],
+      resume_text: resumeText,
+      years_of_experience: undefined,
+      education_level: undefined,
+    };
+
+    const jobData = {
+      title: job.title,
+      level: job.level || "mid",
+      required_skills: job.required_skills || [],
+      nice_to_have_skills: job.nice_to_have_skills || [],
+      description: job.description,
+    };
+
+    // Call the AI scoring function
+    const matchScore = await scoreCandidate(candidateData, jobData);
+
+    return {
+      success: true,
+      ai_score: matchScore.overall_score,
+      ai_summary: matchScore.summary,
+      ai_strengths: matchScore.strengths,
+      ai_concerns: matchScore.concerns,
+      ai_score_breakdown: matchScore.breakdown,
+      extracted_skills: [
+        ...matchScore.skills_analysis.matched,
+        ...matchScore.skills_analysis.bonus,
+      ],
+    };
+  } catch (error) {
+    console.error("Error scoring candidate:", error);
+
+    // Check for specific errors
+    if (error instanceof Error) {
+      if (error.message.includes("OPENAI_API_KEY")) {
+        return {
+          success: false,
+          error: "AI service not configured. Please set OPENAI_API_KEY.",
+        };
+      }
+      if (error.message.includes("rate limit")) {
+        return {
+          success: false,
+          error: "AI rate limit exceeded. Please try again later.",
+        };
+      }
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to score candidate",
+    };
+  }
+}
+
+/**
+ * Updates a candidate record with AI scoring results
+ */
+export async function updateCandidateWithScore(
+  candidateId: string,
+  scoringResult: ScoringResult
+): Promise<void> {
+  const supabase = await createClient();
+
+  const updateData: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (scoringResult.success) {
+    updateData.ai_score = scoringResult.ai_score;
+    updateData.ai_summary = scoringResult.ai_summary;
+    updateData.ai_strengths = scoringResult.ai_strengths;
+    updateData.ai_concerns = scoringResult.ai_concerns;
+    updateData.ai_score_breakdown = scoringResult.ai_score_breakdown;
+    updateData.extracted_skills = scoringResult.extracted_skills;
+  }
+
+  const { error } = await supabase
+    .from("candidates")
+    .update(updateData)
+    .eq("id", candidateId);
+
+  if (error) {
+    console.error("Failed to update candidate with score:", error);
+    throw new Error("Failed to update candidate with AI score");
+  }
+}
+
+/**
+ * Full pipeline: score a candidate and update their record
+ * This is the main function to call after creating a candidate
+ */
+export async function processAndScoreCandidate(
+  candidate: CandidateForScoring
+): Promise<ScoringResult> {
+  const result = await scoreCandidateForJob(candidate);
+
+  // Update the candidate record with the results
+  await updateCandidateWithScore(candidate.id, result);
+
+  return result;
+}

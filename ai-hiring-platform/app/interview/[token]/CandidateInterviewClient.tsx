@@ -116,7 +116,7 @@ export default function CandidateInterviewClient({ token }: CandidateInterviewCl
   }, [token]);
 
   // Start the interview
-  const startInterview = async () => {
+  const startInterview = async (forceStart = false) => {
     setIsSubmitting(true);
     setError(null);
 
@@ -124,7 +124,7 @@ export default function CandidateInterviewClient({ token }: CandidateInterviewCl
       const response = await fetch(`/api/interviews/${token}/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token, force_start: forceStart }),
       });
 
       if (!response.ok) {
@@ -373,14 +373,40 @@ export default function CandidateInterviewClient({ token }: CandidateInterviewCl
             )}
 
             <div className="text-center text-sm text-muted-foreground">
-              <p>You can start the interview 5 minutes before the scheduled time.</p>
+              <p>You can start the interview 5 minutes before the scheduled time,</p>
+              <p>or start it now if you're ready.</p>
               <p className="mt-2">Duration: ~{interviewData.duration_minutes} minutes</p>
             </div>
 
-            <Button onClick={fetchInterviewStatus} variant="outline" className="w-full">
-              <Loader2 className="mr-2 h-4 w-4" />
-              Check Availability
-            </Button>
+            {error && (
+              <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Button 
+                onClick={() => startInterview(true)} 
+                disabled={isSubmitting}
+                className="w-full"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Starting...
+                  </>
+                ) : (
+                  <>
+                    <Play className="mr-2 h-4 w-4" />
+                    Start Interview Now
+                  </>
+                )}
+              </Button>
+              <Button onClick={fetchInterviewStatus} variant="outline" className="w-full">
+                <Clock className="mr-2 h-4 w-4" />
+                Check Availability
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

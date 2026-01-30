@@ -102,6 +102,7 @@ export interface Job {
   require_github: boolean;
   total_applicants: number;
   active_candidates: number;
+  is_archived: boolean;
   created_at: string;
   updated_at: string;
   published_at: string | null;
@@ -515,6 +516,7 @@ export interface CreateJobRequest {
 
 export interface ListJobsQuery {
   status?: JobStatus;
+  include_archived?: boolean;
   page?: number;
   limit?: number;
   sort?: "created_at" | "updated_at" | "title";

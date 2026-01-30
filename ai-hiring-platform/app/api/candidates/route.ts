@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
+import { processAndScoreCandidate } from "@/lib/ai";
 
 // Validation schemas
 const listCandidatesSchema = z.object({
@@ -257,6 +258,21 @@ export async function POST(req: NextRequest) {
         { status: 500 }
       );
     }
+
+    // Trigger AI scoring in the background (don't await to avoid blocking response)
+    // The scoring will update the candidate record asynchronously
+    processAndScoreCandidate({
+      id: candidate.id,
+      job_id: candidate.job_id,
+      full_name: candidate.full_name,
+      email: candidate.email,
+      github_url: candidate.github_url,
+      linkedin_url: candidate.linkedin_url,
+      cover_letter: candidate.cover_letter,
+      resume_text: candidate.resume_text,
+    }).catch((error) => {
+      console.error("Background AI scoring failed:", error);
+    });
 
     return NextResponse.json(candidate, { status: 201 });
   } catch (error) {

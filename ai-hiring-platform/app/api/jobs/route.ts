@@ -24,6 +24,7 @@ const createJobSchema = z.object({
 
 const listJobsSchema = z.object({
   status: z.enum(["draft", "active", "paused", "closed"]).optional(),
+  include_archived: z.coerce.boolean().optional().default(false),
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(20),
   sort: z.enum(["created_at", "updated_at", "title"]).default("created_at"),
@@ -54,7 +55,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { status, page, limit, sort, order } = validation.data;
+    const { status, include_archived, page, limit, sort, order } = validation.data;
     const offset = (page - 1) * limit;
 
     // Build query - MVP: no user filter
@@ -66,6 +67,11 @@ export async function GET(req: NextRequest) {
 
     if (status) {
       query = query.eq("status", status);
+    }
+
+    // Filter out archived jobs by default
+    if (!include_archived) {
+      query = query.eq("is_archived", false);
     }
 
     const { data: jobs, error: dbError, count } = await query;

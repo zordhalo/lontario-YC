@@ -19,6 +19,7 @@ const updateJobSchema = z.object({
   salary_max: z.number().positive().nullable().optional(),
   show_salary: z.boolean().optional(),
   status: z.enum(["draft", "active", "paused", "closed"]).optional(),
+  is_archived: z.boolean().optional(),
   application_deadline: z.string().datetime().nullable().optional(),
   screening_questions: z.array(z.unknown()).optional(),
   require_cover_letter: z.boolean().optional(),

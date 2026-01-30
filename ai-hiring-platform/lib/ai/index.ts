@@ -20,3 +20,9 @@ export {
   extractLinkedInUrl,
   isLinkedInUrl,
 } from "./linkedin";
+
+export {
+  scoreCandidateForJob,
+  updateCandidateWithScore,
+  processAndScoreCandidate,
+} from "./scoring";
