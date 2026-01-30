@@ -27,6 +27,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
+import { useCreateJob } from "@/hooks/use-jobs"
+import type { CreateJobRequest } from "@/types"
 
 const steps = [
   { id: 1, name: "Basic Info" },
@@ -61,17 +63,37 @@ const jobTypes = [
   { value: "contract", label: "Contract" },
 ]
 
+// Map UI level values to API level values
+const levelMap: Record<string, "junior" | "mid" | "senior" | "staff" | "principal"> = {
+  "Entry-level": "junior",
+  "Mid-level": "mid",
+  "Senior": "senior",
+  "Lead": "staff",
+  "Manager": "staff",
+  "Director": "principal",
+}
+
+// Map UI location to location_type
+function getLocationType(location: string): "remote" | "onsite" | "hybrid" | undefined {
+  if (location.toLowerCase().includes("remote")) return "remote"
+  if (location.toLowerCase().includes("hybrid")) return "hybrid"
+  if (location.toLowerCase().includes("on-site")) return "onsite"
+  return undefined
+}
+
 export default function NewJobPage() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(1)
   const [isGenerating, setIsGenerating] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const createJob = useCreateJob()
 
   const [formData, setFormData] = useState({
     title: "",
     department: "",
     level: "",
     location: "",
-    type: "full-time",
+    type: "full-time" as "full-time" | "part-time" | "contract" | "internship",
     requirements: [""],
     description: "",
   })
@@ -144,14 +166,50 @@ We're building something special, and we'd love for you to be a part of it. Appl
     setCurrentStep(2)
   }
 
-  const handlePublish = () => {
-    toast.success("Job published successfully!")
-    router.push("/jobs")
+  const transformFormData = (): CreateJobRequest => {
+    const filteredRequirements = formData.requirements.filter((r) => r.trim())
+    
+    return {
+      title: formData.title,
+      level: levelMap[formData.level],
+      department: formData.department || undefined,
+      location: formData.location || undefined,
+      location_type: getLocationType(formData.location),
+      employment_type: formData.type,
+      description: formData.description,
+      required_skills: filteredRequirements.length > 0 ? filteredRequirements : ["General skills"],
+      nice_to_have_skills: [],
+    }
   }
 
-  const handleSaveDraft = () => {
-    toast.success("Draft saved successfully!")
-    router.push("/jobs")
+  const handlePublish = async () => {
+    setIsSaving(true)
+    try {
+      const jobData = transformFormData()
+      await createJob.mutateAsync({ ...jobData, status: "active" })
+      toast.success("Job published successfully!")
+      router.push("/jobs")
+    } catch (error) {
+      console.error("Failed to create job:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to create job")
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleSaveDraft = async () => {
+    setIsSaving(true)
+    try {
+      const jobData = transformFormData()
+      await createJob.mutateAsync(jobData)
+      toast.success("Draft saved successfully!")
+      router.push("/jobs")
+    } catch (error) {
+      console.error("Failed to save draft:", error)
+      toast.error(error instanceof Error ? error.message : "Failed to save draft")
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const canProceedToStep2 =
@@ -198,11 +256,11 @@ We're building something special, and we'd love for you to be a part of it. Appl
               </h1>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={handleSaveDraft}>
+              <Button variant="outline" onClick={handleSaveDraft} disabled={isSaving}>
+                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Save Draft
               </Button>
-              <Button onClick={() => setCurrentStep(3)} disabled={!canPublish}>
-                <X className="mr-2 h-4 w-4 hidden" />
+              <Button onClick={() => setCurrentStep(3)} disabled={!canPublish || isSaving}>
                 Review & Publish
               </Button>
             </div>
@@ -561,16 +619,21 @@ We're building something special, and we'd love for you to be a part of it. Appl
             </Card>
 
             <div className="flex items-center justify-between">
-              <Button variant="outline" onClick={() => setCurrentStep(2)}>
+              <Button variant="outline" onClick={() => setCurrentStep(2)} disabled={isSaving}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to Edit
               </Button>
               <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={handleSaveDraft}>
+                <Button variant="outline" onClick={handleSaveDraft} disabled={isSaving}>
+                  {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                   Save as Draft
                 </Button>
-                <Button onClick={handlePublish}>
-                  <Check className="mr-2 h-4 w-4" />
+                <Button onClick={handlePublish} disabled={isSaving}>
+                  {isSaving ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="mr-2 h-4 w-4" />
+                  )}
                   Publish Job
                 </Button>
               </div>

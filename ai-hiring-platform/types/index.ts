@@ -510,6 +510,7 @@ export interface CreateJobRequest {
   salary_min?: number;
   salary_max?: number;
   use_ai_description?: boolean;
+  status?: "draft" | "active";
 }
 
 export interface ListJobsQuery {

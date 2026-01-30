@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { z } from "zod";
 import { generateJobDescription } from "@/lib/ai";
 
@@ -19,6 +19,7 @@ const createJobSchema = z.object({
   salary_min: z.number().positive().optional(),
   salary_max: z.number().positive().optional(),
   use_ai_description: z.boolean().optional().default(false),
+  status: z.enum(["draft", "active"]).optional().default("draft"),
 });
 
 const listJobsSchema = z.object({
@@ -98,15 +99,37 @@ export async function GET(req: NextRequest) {
 // MVP placeholder user ID (used when auth is disabled)
 const MVP_USER_ID = "00000000-0000-0000-0000-000000000000";
 
+// Ensure MVP placeholder profile exists
+async function ensureMvpProfile(supabase: ReturnType<typeof createAdminClient>) {
+  const { error } = await supabase
+    .from("profiles")
+    .upsert(
+      {
+        id: MVP_USER_ID,
+        email: "mvp@placeholder.local",
+        full_name: "MVP User",
+        role: "recruiter",
+      },
+      { onConflict: "id" }
+    );
+
+  if (error) {
+    console.error("Failed to ensure MVP profile:", error);
+    throw new Error("Failed to create MVP profile for job creation");
+  }
+}
+
 /**
  * POST /api/jobs
  * Create a new job posting (MVP: no auth required)
  */
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient();
+    // MVP: Use admin client to bypass RLS (no auth required)
+    const supabase = createAdminClient();
 
-    // MVP: Auth disabled - use placeholder user ID
+    // Ensure MVP placeholder profile exists for foreign key constraint
+    await ensureMvpProfile(supabase);
 
     // Parse and validate request body
     const body = await req.json();
@@ -156,7 +179,7 @@ export async function POST(req: NextRequest) {
         salary_min: jobData.salary_min,
         salary_max: jobData.salary_max,
         ai_generated_description: jobData.use_ai_description,
-        status: "draft",
+        status: jobData.status,
       })
       .select()
       .single();
