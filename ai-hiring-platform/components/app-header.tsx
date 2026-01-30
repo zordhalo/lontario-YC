@@ -8,6 +8,7 @@ import {
   ChevronDown,
   LayoutDashboard,
   LineChart,
+  MessageSquare,
   Search,
   Settings,
   Users,
@@ -32,6 +33,7 @@ const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Jobs", href: "/jobs", icon: Briefcase },
   { name: "Candidates", href: "/candidates", icon: Users },
+  { name: "AI Interview", href: "/interview", icon: MessageSquare },
   { name: "Analytics", href: "/analytics", icon: LineChart },
 ]
 

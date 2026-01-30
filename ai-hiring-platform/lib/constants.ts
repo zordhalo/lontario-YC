@@ -1,0 +1,97 @@
+// Application constants
+
+// Pipeline stages configuration
+export const PIPELINE_STAGES = [
+  { id: "applied", label: "Applied", color: "bg-gray-500", description: "New applications" },
+  { id: "screening", label: "Screening", color: "bg-blue-500", description: "AI screening in progress" },
+  { id: "ai_interview", label: "AI Interview", color: "bg-purple-500", description: "Text-based AI interview" },
+  { id: "phone_screen", label: "Phone Screen", color: "bg-indigo-500", description: "Human phone screen" },
+  { id: "technical", label: "Technical", color: "bg-cyan-500", description: "Technical interview" },
+  { id: "onsite", label: "Onsite", color: "bg-teal-500", description: "Onsite/final round" },
+  { id: "offer", label: "Offer", color: "bg-amber-500", description: "Offer extended" },
+  { id: "hired", label: "Hired", color: "bg-green-500", description: "Accepted offer" },
+] as const;
+
+// Simplified pipeline for Kanban board
+export const KANBAN_STAGES = [
+  { id: "applied", label: "Applied", color: "bg-gray-500" },
+  { id: "screened", label: "Screened", color: "bg-blue-500" },
+  { id: "interview", label: "Interview", color: "bg-purple-500" },
+  { id: "offer", label: "Offer", color: "bg-amber-500" },
+  { id: "hired", label: "Hired", color: "bg-green-500" },
+] as const;
+
+// Job status configuration
+export const JOB_STATUS = {
+  draft: { label: "Draft", color: "bg-warning/10 text-warning border-warning/30" },
+  active: { label: "Active", color: "bg-success/10 text-success border-success/30" },
+  paused: { label: "Paused", color: "bg-orange-100 text-orange-800 border-orange-200" },
+  closed: { label: "Closed", color: "bg-muted text-muted-foreground border-border" },
+} as const;
+
+// Job levels
+export const JOB_LEVELS = [
+  { value: "junior", label: "Junior" },
+  { value: "mid", label: "Mid-level" },
+  { value: "senior", label: "Senior" },
+  { value: "staff", label: "Staff" },
+  { value: "principal", label: "Principal" },
+] as const;
+
+// Employment types
+export const EMPLOYMENT_TYPES = [
+  { value: "full-time", label: "Full-time" },
+  { value: "part-time", label: "Part-time" },
+  { value: "contract", label: "Contract" },
+  { value: "internship", label: "Internship" },
+] as const;
+
+// Location types
+export const LOCATION_TYPES = [
+  { value: "remote", label: "Remote" },
+  { value: "onsite", label: "On-site" },
+  { value: "hybrid", label: "Hybrid" },
+] as const;
+
+// AI Score thresholds
+export const AI_SCORE_THRESHOLDS = {
+  excellent: 90,
+  good: 70,
+  moderate: 50,
+} as const;
+
+// Question categories
+export const QUESTION_CATEGORIES = [
+  { value: "technical", label: "Technical", color: "bg-blue-100 text-blue-800" },
+  { value: "behavioral", label: "Behavioral", color: "bg-green-100 text-green-800" },
+  { value: "system-design", label: "System Design", color: "bg-purple-100 text-purple-800" },
+  { value: "problem-solving", label: "Problem Solving", color: "bg-orange-100 text-orange-800" },
+  { value: "culture-fit", label: "Culture Fit", color: "bg-pink-100 text-pink-800" },
+] as const;
+
+// Recommendation labels
+export const RECOMMENDATIONS = {
+  strong_yes: { label: "Strong Yes", color: "bg-green-100 text-green-800", icon: "👍👍" },
+  yes: { label: "Yes", color: "bg-green-50 text-green-700", icon: "👍" },
+  maybe: { label: "Maybe", color: "bg-yellow-100 text-yellow-800", icon: "🤔" },
+  no: { label: "No", color: "bg-red-50 text-red-700", icon: "👎" },
+  strong_no: { label: "Strong No", color: "bg-red-100 text-red-800", icon: "👎👎" },
+} as const;
+
+// API endpoints
+export const API_ENDPOINTS = {
+  jobs: "/api/jobs",
+  candidates: "/api/candidates",
+  interviews: "/api/interviews",
+  ai: {
+    generateQuestions: "/api/ai/generate-questions",
+    scoreCandidate: "/api/ai/score-candidate",
+    parseResume: "/api/ai/parse-resume",
+    evaluateAnswer: "/api/ai/evaluate-answer",
+    followUp: "/api/ai/follow-up",
+    scrapeProfile: "/api/ai/scrape-profile",
+  },
+} as const;
+
+// Demo mode flag
+export const IS_DEMO_MODE = !process.env.NEXT_PUBLIC_SUPABASE_URL;
