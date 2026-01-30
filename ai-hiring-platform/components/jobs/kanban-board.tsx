@@ -83,7 +83,7 @@ export function KanbanBoard({
   }
 
   return (
-    <div className="h-full overflow-x-auto pb-4">
+    <div className="h-full overflow-x-auto pb-4 px-4 lg:px-6">
       <div className="flex gap-4 h-full min-w-max lg:min-w-0">
         {columns.map((column) => {
           const columnCandidates = getCandidatesByStatus(column.status)
