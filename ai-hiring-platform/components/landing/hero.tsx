@@ -63,9 +63,11 @@ export function Hero() {
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </Link>
-          <Button variant="outline" size="lg" className="px-8 h-12 text-base">
-            View source code
-          </Button>
+          <Link href="https://github.com/zordhalo/lontario-YC" target="_blank" rel="noopener noreferrer">
+            <Button variant="outline" size="lg" className="px-8 h-12 text-base">
+              View source code
+            </Button>
+          </Link>
         </div>
         
         <div className="mt-16">
