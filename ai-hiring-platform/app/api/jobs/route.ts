@@ -84,8 +84,41 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Fetch candidate stage counts for all jobs
+    const jobIds = jobs?.map((j) => j.id) || [];
+    let stageCounts: Record<string, Record<string, number>> = {};
+
+    if (jobIds.length > 0) {
+      const { data: candidates, error: candidatesError } = await supabase
+        .from("candidates")
+        .select("job_id, stage")
+        .in("job_id", jobIds);
+
+      if (candidatesError) {
+        console.error("Error fetching candidate stages:", candidatesError);
+        // Continue without stage counts rather than failing
+      } else if (candidates) {
+        // Aggregate candidates by job_id and stage
+        stageCounts = candidates.reduce((acc, candidate) => {
+          const jobId = candidate.job_id;
+          const stage = candidate.stage;
+          if (!acc[jobId]) {
+            acc[jobId] = {};
+          }
+          acc[jobId][stage] = (acc[jobId][stage] || 0) + 1;
+          return acc;
+        }, {} as Record<string, Record<string, number>>);
+      }
+    }
+
+    // Merge stage counts into job objects
+    const jobsWithStageCounts = jobs?.map((job) => ({
+      ...job,
+      stage_counts: stageCounts[job.id] || {},
+    }));
+
     return NextResponse.json({
-      jobs,
+      jobs: jobsWithStageCounts,
       pagination: {
         total: count ?? 0,
         page,

@@ -303,15 +303,65 @@ export function useCreateCandidate() {
     onSuccess: () => {
       // Invalidate all candidate lists to refresh the data immediately
       queryClient.invalidateQueries({ queryKey: candidateKeys.lists() });
-      
-      // Schedule additional refetches to pick up AI scoring results
-      // AI scoring happens asynchronously and may take a few seconds
-      const refetchDelays = [3000, 8000, 15000]; // 3s, 8s, 15s
-      refetchDelays.forEach((delay) => {
-        setTimeout(() => {
-          queryClient.invalidateQueries({ queryKey: candidateKeys.lists() });
-        }, delay);
-      });
     },
   });
+}
+
+/**
+ * Poll a candidate until AI scoring is complete
+ * Returns when scoring is done or after max attempts
+ */
+export async function pollCandidateUntilScored(
+  candidateId: string,
+  options?: {
+    maxAttempts?: number;
+    intervalMs?: number;
+    onProgress?: (attempt: number, candidate: Candidate | null) => void;
+  }
+): Promise<Candidate | null> {
+  const maxAttempts = options?.maxAttempts ?? 10;
+  const intervalMs = options?.intervalMs ?? 2000;
+  
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const candidate = await fetchCandidate(candidateId);
+      options?.onProgress?.(attempt, candidate as Candidate);
+      
+      // Check if scoring is complete - candidate has ai_score > 0 OR has ai_summary
+      // (ai_score of 0 with summary means insufficient data, which is also "complete")
+      const hasScore = candidate.ai_score !== null && candidate.ai_score !== undefined;
+      const hasSummary = !!candidate.ai_summary;
+      const hasAvatar = !!candidate.avatar_url;
+      
+      if (hasScore || hasSummary || hasAvatar) {
+        return candidate as Candidate;
+      }
+      
+      // Wait before next attempt
+      if (attempt < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+      }
+    } catch (error) {
+      console.error(`Polling attempt ${attempt} failed:`, error);
+      // Continue polling even if one request fails
+      if (attempt < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+      }
+    }
+  }
+  
+  return null;
+}
+
+/**
+ * Hook to invalidate candidate queries - useful after polling completes
+ */
+export function useInvalidateCandidates() {
+  const queryClient = useQueryClient();
+  
+  return {
+    invalidateAll: () => queryClient.invalidateQueries({ queryKey: candidateKeys.all }),
+    invalidateLists: () => queryClient.invalidateQueries({ queryKey: candidateKeys.lists() }),
+    invalidateCandidate: (id: string) => queryClient.invalidateQueries({ queryKey: candidateKeys.detail(id) }),
+  };
 }

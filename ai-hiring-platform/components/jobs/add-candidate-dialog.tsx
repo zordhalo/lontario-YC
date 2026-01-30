@@ -4,7 +4,7 @@ import { useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import * as z from "zod"
-import { Loader2, Plus, User, Mail, Phone, MapPin, Linkedin, Github, Globe, FileText } from "lucide-react"
+import { Loader2, Plus, User, Mail, Phone, MapPin, Linkedin, Github, Globe, FileText, Sparkles, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -25,8 +25,9 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { Progress } from "@/components/ui/progress"
 import { useToast } from "@/hooks/use-toast"
-import { useCreateCandidate } from "@/hooks/use-candidates"
+import { useCreateCandidate, pollCandidateUntilScored, useInvalidateCandidates } from "@/hooks/use-candidates"
 
 const formSchema = z.object({
   full_name: z.string().min(2, "Name must be at least 2 characters"),
@@ -46,10 +47,19 @@ interface AddCandidateDialogProps {
   onSuccess?: () => void
 }
 
+type ScoringState = 
+  | { status: 'idle' }
+  | { status: 'creating' }
+  | { status: 'scoring'; progress: number; message: string }
+  | { status: 'complete'; candidateName: string; score: number | null; hasAvatar: boolean }
+  | { status: 'error'; message: string }
+
 export function AddCandidateDialog({ jobId, onSuccess }: AddCandidateDialogProps) {
   const [open, setOpen] = useState(false)
+  const [scoringState, setScoringState] = useState<ScoringState>({ status: 'idle' })
   const { toast } = useToast()
   const createCandidate = useCreateCandidate()
+  const { invalidateLists } = useInvalidateCandidates()
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -78,25 +88,79 @@ export function AddCandidateDialog({ jobId, onSuccess }: AddCandidateDialogProps
         cover_letter: values.cover_letter || undefined,
       }
 
+      setScoringState({ status: 'creating' })
+
       const candidate = await createCandidate.mutateAsync({
         ...cleanedValues,
         job_id: jobId,
         source: "manual",
       })
       
-      // Show different message based on whether we have profile data for AI scoring
+      // Check if we have profile data that could be scored
       const hasProfileData = cleanedValues.github_url || cleanedValues.linkedin_url || cleanedValues.cover_letter
       
-      toast({
-        title: "Candidate Added",
-        description: hasProfileData 
-          ? `${candidate.full_name} has been added. AI scoring in progress...`
-          : `${candidate.full_name} has been added. Add a GitHub profile or cover letter for AI matching.`,
-      })
+      if (hasProfileData) {
+        // Poll for AI scoring completion
+        setScoringState({ 
+          status: 'scoring', 
+          progress: 10, 
+          message: 'Fetching profile data...' 
+        })
+
+        const scoredCandidate = await pollCandidateUntilScored(candidate.id, {
+          maxAttempts: 15,
+          intervalMs: 2000,
+          onProgress: (attempt) => {
+            const progress = Math.min(10 + (attempt * 6), 90)
+            const messages = [
+              'Fetching profile data...',
+              'Analyzing GitHub repositories...',
+              'Extracting skills and experience...',
+              'Matching against job requirements...',
+              'Calculating AI score...',
+              'Finalizing analysis...',
+            ]
+            const messageIndex = Math.min(Math.floor(attempt / 2), messages.length - 1)
+            setScoringState({ 
+              status: 'scoring', 
+              progress, 
+              message: messages[messageIndex] 
+            })
+          },
+        })
+
+        // Invalidate queries to refresh the UI
+        invalidateLists()
+
+        if (scoredCandidate) {
+          setScoringState({ 
+            status: 'complete', 
+            candidateName: scoredCandidate.full_name || candidate.full_name,
+            score: scoredCandidate.ai_score ?? null,
+            hasAvatar: !!scoredCandidate.avatar_url,
+          })
+          
+          // Show success state briefly before closing
+          await new Promise(resolve => setTimeout(resolve, 1500))
+        } else {
+          // Scoring didn't complete in time, but candidate was created
+          toast({
+            title: "Candidate Added",
+            description: `${candidate.full_name} has been added. AI scoring is still processing and will update shortly.`,
+          })
+        }
+      } else {
+        // No profile data - just show success
+        toast({
+          title: "Candidate Added", 
+          description: `${candidate.full_name} has been added. Add a GitHub profile or cover letter for AI matching.`,
+        })
+      }
 
       // Close dialog and reset form
       setOpen(false)
       form.reset()
+      setScoringState({ status: 'idle' })
       
       // Trigger callback
       if (onSuccess) {
@@ -104,6 +168,10 @@ export function AddCandidateDialog({ jobId, onSuccess }: AddCandidateDialogProps
       }
     } catch (error) {
       console.error("Error adding candidate:", error)
+      setScoringState({ 
+        status: 'error', 
+        message: error instanceof Error ? error.message : "Failed to add candidate" 
+      })
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to add candidate",
@@ -112,8 +180,18 @@ export function AddCandidateDialog({ jobId, onSuccess }: AddCandidateDialogProps
     }
   }
 
+  const isProcessing = scoringState.status === 'creating' || scoringState.status === 'scoring'
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      // Prevent closing while processing
+      if (!isProcessing) {
+        setOpen(isOpen)
+        if (!isOpen) {
+          setScoringState({ status: 'idle' })
+        }
+      }
+    }}>
       <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
@@ -121,6 +199,52 @@ export function AddCandidateDialog({ jobId, onSuccess }: AddCandidateDialogProps
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        {/* Scoring Progress Overlay */}
+        {(scoringState.status === 'scoring' || scoringState.status === 'complete') && (
+          <div className="absolute inset-0 bg-background/95 z-50 flex items-center justify-center rounded-lg">
+            <div className="text-center space-y-4 p-8 max-w-sm">
+              {scoringState.status === 'scoring' ? (
+                <>
+                  <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Sparkles className="h-6 w-6 text-primary animate-pulse" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-lg">AI Screening in Progress</h3>
+                    <p className="text-sm text-muted-foreground">{scoringState.message}</p>
+                  </div>
+                  <Progress value={scoringState.progress} className="w-full" />
+                  <p className="text-xs text-muted-foreground">
+                    This may take up to 30 seconds...
+                  </p>
+                </>
+              ) : scoringState.status === 'complete' ? (
+                <>
+                  <div className="mx-auto h-12 w-12 rounded-full bg-success/10 flex items-center justify-center">
+                    <CheckCircle className="h-6 w-6 text-success" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-lg">Candidate Added</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {scoringState.candidateName} has been screened
+                    </p>
+                    {scoringState.score !== null && scoringState.score > 0 && (
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary font-medium">
+                        <Sparkles className="h-4 w-4" />
+                        {scoringState.score}% Match
+                      </div>
+                    )}
+                    {scoringState.hasAvatar && (
+                      <p className="text-xs text-muted-foreground">
+                        Profile photo imported from GitHub
+                      </p>
+                    )}
+                  </div>
+                </>
+              ) : null}
+            </div>
+          </div>
+        )}
+
         <DialogHeader>
           <DialogTitle>Add New Candidate</DialogTitle>
           <DialogDescription>
@@ -288,13 +412,13 @@ export function AddCandidateDialog({ jobId, onSuccess }: AddCandidateDialogProps
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
-                disabled={createCandidate.isPending}
+                disabled={isProcessing}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={createCandidate.isPending}>
-                {createCandidate.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Add Candidate
+              <Button type="submit" disabled={isProcessing}>
+                {scoringState.status === 'creating' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {scoringState.status === 'creating' ? 'Creating...' : 'Add Candidate'}
               </Button>
             </DialogFooter>
           </form>

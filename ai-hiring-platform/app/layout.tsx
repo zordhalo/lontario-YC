@@ -9,7 +9,7 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-geist-sans" })
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" })
 
 export const metadata: Metadata = {
-  title: "HireAI - AI-Powered Hiring Platform",
+  title: "Lontario - AI-Powered Hiring Platform",
   description:
     "Streamline your hiring process with AI-powered candidate screening, intelligent ranking, and automated interviews.",
   icons: {
@@ -29,11 +29,11 @@ export const metadata: Metadata = {
     ],
     apple: "/apple-icon.png",
   },
-  generator: "AI Hiring Platform",
+  generator: "Lontario",
 }
 
 export const viewport: Viewport = {
-  themeColor: "#32B8C6",
+  themeColor: "#4ADE80",
   width: "device-width",
   initialScale: 1,
 }

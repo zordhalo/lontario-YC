@@ -36,7 +36,7 @@ import {
 import { Progress } from "@/components/ui/progress"
 import { useArchiveJob, useUnarchiveJob } from "@/hooks/use-jobs"
 import { useToast } from "@/hooks/use-toast"
-import type { Job } from "@/lib/mock-data"
+import type { Job, StageCounts } from "@/lib/mock-data"
 
 interface JobCardProps {
   job: Job
@@ -49,13 +49,58 @@ const statusColors = {
   closed: "bg-muted text-muted-foreground border-border",
 }
 
+// Calculate pipeline progress from real stage data
+// Progress = candidates who have moved past "applied" stage / total candidates
+function calculatePipelineProgress(stageCounts: StageCounts | undefined, totalApplicants: number): number {
+  if (!stageCounts || totalApplicants === 0) {
+    return 0
+  }
+
+  // Stages that indicate progress (past the initial "applied" stage)
+  const progressStages = [
+    "screening",
+    "ai_interview", 
+    "phone_screen",
+    "technical",
+    "onsite",
+    "offer",
+    "hired",
+  ] as const
+
+  // Count candidates who have progressed past "applied"
+  const progressedCount = progressStages.reduce((sum, stage) => {
+    return sum + (stageCounts[stage] || 0)
+  }, 0)
+
+  return Math.round((progressedCount / totalApplicants) * 100)
+}
+
+// Get counts for display in the progress bar breakdown
+function getStageBreakdown(stageCounts: StageCounts | undefined): { 
+  applied: number
+  screened: number
+  interview: number
+} {
+  if (!stageCounts) {
+    return { applied: 0, screened: 0, interview: 0 }
+  }
+
+  return {
+    applied: stageCounts.applied || 0,
+    screened: (stageCounts.screening || 0),
+    interview: (stageCounts.ai_interview || 0) + 
+               (stageCounts.phone_screen || 0) + 
+               (stageCounts.technical || 0) + 
+               (stageCounts.onsite || 0) +
+               (stageCounts.offer || 0) +
+               (stageCounts.hired || 0),
+  }
+}
+
 export function JobCard({ job, variant = "grid" }: JobCardProps) {
-  const screened = Math.floor(job.applicants * 0.4)
-  const interview = Math.floor(job.applicants * 0.15)
-  const progress =
-    job.applicants > 0
-      ? Math.round(((screened + interview) / job.applicants) * 100)
-      : 0
+  const stageCounts = job.stageCounts || job.stage_counts
+  const progress = calculatePipelineProgress(stageCounts, job.applicants)
+  const breakdown = getStageBreakdown(stageCounts)
 
   if (variant === "list") {
     return (

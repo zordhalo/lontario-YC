@@ -19,6 +19,7 @@ export interface Candidate {
   full_name?: string  // Database field name
   email: string
   avatar?: string
+  avatar_url?: string  // GitHub profile picture URL
   aiScore: number
   ai_score?: number   // Database field name
   experience: string
@@ -46,6 +47,9 @@ export interface Candidate {
   is_starred?: boolean
 }
 
+// Stage counts for pipeline progress calculation
+export type StageCounts = Partial<Record<CandidateStatus, number>>
+
 export interface Job {
   id: string
   title: string
@@ -69,6 +73,9 @@ export interface Job {
   required_skills?: string[]
   nice_to_have_skills?: string[]
   slug?: string
+  // Pipeline progress data
+  stageCounts?: StageCounts
+  stage_counts?: StageCounts
 }
 
 // Helper to normalize candidate data from API to component format
@@ -78,7 +85,8 @@ export function normalizeCandidate(data: Partial<Candidate>): Candidate {
     name: data.name || data.full_name || "",
     full_name: data.full_name || data.name,
     email: data.email || "",
-    avatar: data.avatar,
+    avatar: data.avatar || data.avatar_url,
+    avatar_url: data.avatar_url || data.avatar,
     aiScore: data.aiScore ?? data.ai_score ?? 0,
     ai_score: data.ai_score ?? data.aiScore,
     experience: data.experience || `${data.years_of_experience || 0} years`,
@@ -132,5 +140,7 @@ export function normalizeJob(data: Partial<Job>): Job {
     required_skills: data.required_skills || data.requirements,
     nice_to_have_skills: data.nice_to_have_skills,
     slug: data.slug,
+    stageCounts: data.stageCounts || data.stage_counts,
+    stage_counts: data.stage_counts || data.stageCounts,
   }
 }

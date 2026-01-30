@@ -1,21 +1,19 @@
 "use client"
 
 import Link from "next/link"
+import Image from "next/image"
 import { usePathname } from "next/navigation"
 import {
   Briefcase,
   LayoutDashboard,
-  MessageSquare,
-  Sparkles,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Jobs", href: "/jobs", icon: Briefcase },
-  { name: "AI Interview", href: "/interview", icon: MessageSquare },
 ]
 
 export function AppHeader() {
@@ -26,12 +24,16 @@ export function AppHeader() {
       <div className="flex h-full items-center justify-between px-4 lg:px-6">
         {/* Logo and Navigation */}
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <Sparkles className="h-4 w-4 text-primary-foreground" />
-            </div>
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <Image
+              src="/images/logo.jpg"
+              alt="Lontario logo"
+              width={32}
+              height={32}
+              className="rounded-lg"
+            />
             <span className="text-lg font-semibold text-foreground">
-              HireAI
+              Lontario
             </span>
           </Link>
 

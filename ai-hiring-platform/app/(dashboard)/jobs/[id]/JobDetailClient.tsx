@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useCallback } from "react"
 import Link from "next/link"
-import { Settings, Loader2, Archive, ArchiveRestore } from "lucide-react"
+import { Loader2, Archive, ArchiveRestore } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AddCandidateDialog } from "@/components/jobs/add-candidate-dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -30,11 +30,24 @@ import {
 import { KanbanBoard } from "@/components/jobs/kanban-board"
 import { JobDetails } from "@/components/jobs/job-details"
 import { CandidatePanel } from "@/components/jobs/candidate-panel"
+import { ScheduleDialog } from "@/components/interview/ScheduleDialog"
 import { useJob, useArchiveJob, useUnarchiveJob } from "@/hooks/use-jobs"
-import { useCandidates, useMoveCandidate } from "@/hooks/use-candidates"
+import { useCandidates, useMoveCandidate, useInvalidateCandidates } from "@/hooks/use-candidates"
 import { useToast } from "@/hooks/use-toast"
 import { normalizeJob, normalizeCandidate, type Candidate, type CandidateStatus } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
+
+// Pipeline stage order for advancing candidates
+const STAGE_ORDER: CandidateStatus[] = [
+  "applied",
+  "screening",
+  "ai_interview",
+  "phone_screen",
+  "technical",
+  "onsite",
+  "offer",
+  "hired",
+]
 
 const statusColors = {
   active: "bg-success/10 text-success border-success/30",
@@ -54,6 +67,7 @@ export default function JobDetailClient({ jobId }: JobDetailClientProps) {
   const moveCandidate = useMoveCandidate()
   const archiveJob = useArchiveJob()
   const unarchiveJob = useUnarchiveJob()
+  const { invalidateLists } = useInvalidateCandidates()
   const { toast } = useToast()
   const [showArchiveDialog, setShowArchiveDialog] = useState(false)
 
@@ -72,6 +86,10 @@ export default function JobDetailClient({ jobId }: JobDetailClientProps) {
   
   // Local state for optimistic updates on candidate statuses
   const [candidateStatuses, setCandidateStatuses] = useState<Record<string, CandidateStatus>>({})
+  
+  // Schedule dialog state
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
+  const [candidateToSchedule, setCandidateToSchedule] = useState<Candidate | null>(null)
 
   // Initialize candidate statuses when candidates load
   useEffect(() => {
@@ -87,6 +105,111 @@ export default function JobDetailClient({ jobId }: JobDetailClientProps) {
       }
     }
   }, [candidates])
+
+  // All hooks must be declared before any conditional returns (Rules of Hooks)
+  const handleStatusChange = useCallback(async (
+    candidateId: string,
+    newStatus: CandidateStatus,
+    options?: { rejection_reason?: string }
+  ) => {
+    // Optimistic update
+    setCandidateStatuses((prev) => ({
+      ...prev,
+      [candidateId]: newStatus,
+    }))
+
+    // Call API to persist the change
+    try {
+      await moveCandidate.mutateAsync({
+        candidateId,
+        stage: newStatus as "applied" | "screening" | "ai_interview" | "phone_screen" | "technical" | "onsite" | "offer" | "hired" | "rejected",
+        rejection_reason: options?.rejection_reason,
+      })
+    } catch (error) {
+      // Revert on error
+      const originalStatus = candidates.find((c) => c.id === candidateId)?.status
+      if (originalStatus) {
+        setCandidateStatuses((prev) => ({
+          ...prev,
+          [candidateId]: originalStatus,
+        }))
+      }
+    }
+  }, [moveCandidate, candidates])
+
+  // Get the next stage in the pipeline
+  const getNextStage = useCallback((currentStatus: CandidateStatus): CandidateStatus | null => {
+    const currentIndex = STAGE_ORDER.indexOf(currentStatus)
+    if (currentIndex === -1 || currentIndex >= STAGE_ORDER.length - 1) {
+      return null // Already at hired or unknown status
+    }
+    return STAGE_ORDER[currentIndex + 1]
+  }, [])
+
+  // Handle approve (move to next stage)
+  const handleApprove = useCallback((candidate: Candidate) => {
+    const currentStatus = candidateStatuses[candidate.id] || candidate.status
+    const nextStage = getNextStage(currentStatus)
+    
+    if (!nextStage) {
+      toast({
+        title: "Already at final stage",
+        description: `${candidate.name} is already at the ${currentStatus} stage.`,
+      })
+      return
+    }
+
+    handleStatusChange(candidate.id, nextStage)
+    toast({
+      title: "Candidate advanced",
+      description: `${candidate.name} moved to ${nextStage.replace(/_/g, " ")} stage.`,
+    })
+  }, [candidateStatuses, getNextStage, handleStatusChange, toast])
+
+  // Handle reject
+  const handleReject = useCallback((candidate: Candidate) => {
+    handleStatusChange(candidate.id, "rejected" as CandidateStatus, {
+      rejection_reason: "Rejected via quick action",
+    })
+    toast({
+      title: "Candidate rejected",
+      description: `${candidate.name} has been moved to rejected.`,
+      variant: "destructive",
+    })
+  }, [handleStatusChange, toast])
+
+  // Handle schedule interview
+  const handleScheduleInterview = useCallback((candidate: Candidate) => {
+    setCandidateToSchedule(candidate)
+    setScheduleDialogOpen(true)
+  }, [])
+
+  // Handle successful scheduling
+  const handleScheduled = useCallback(() => {
+    if (candidateToSchedule) {
+      // Move candidate to ai_interview stage if not already there or past it
+      const currentStatus = candidateStatuses[candidateToSchedule.id] || candidateToSchedule.status
+      const currentIndex = STAGE_ORDER.indexOf(currentStatus)
+      const aiInterviewIndex = STAGE_ORDER.indexOf("ai_interview")
+      
+      if (currentIndex < aiInterviewIndex) {
+        handleStatusChange(candidateToSchedule.id, "ai_interview")
+      }
+      
+      toast({
+        title: "Interview scheduled",
+        description: `AI interview scheduled for ${candidateToSchedule.name}. They will receive an email invitation.`,
+      })
+    }
+    setCandidateToSchedule(null)
+  }, [candidateToSchedule, candidateStatuses, handleStatusChange, toast])
+
+  const getCandidatesWithStatus = () => {
+    return candidates.map((c) => ({
+      ...c,
+      status: candidateStatuses[c.id] || c.status,
+    }))
+  }
 
   // Loading state
   if (jobLoading) {
@@ -127,41 +250,6 @@ export default function JobDetailClient({ jobId }: JobDetailClientProps) {
         </div>
       </div>
     )
-  }
-
-  const handleStatusChange = async (
-    candidateId: string,
-    newStatus: CandidateStatus
-  ) => {
-    // Optimistic update
-    setCandidateStatuses((prev) => ({
-      ...prev,
-      [candidateId]: newStatus,
-    }))
-
-    // Call API to persist the change
-    try {
-      await moveCandidate.mutateAsync({
-        candidateId,
-        stage: newStatus as "applied" | "screening" | "ai_interview" | "phone_screen" | "technical" | "onsite" | "offer" | "hired" | "rejected",
-      })
-    } catch (error) {
-      // Revert on error
-      const originalStatus = candidates.find((c) => c.id === candidateId)?.status
-      if (originalStatus) {
-        setCandidateStatuses((prev) => ({
-          ...prev,
-          [candidateId]: originalStatus,
-        }))
-      }
-    }
-  }
-
-  const getCandidatesWithStatus = () => {
-    return candidates.map((c) => ({
-      ...c,
-      status: candidateStatuses[c.id] || c.status,
-    }))
   }
 
   const handleArchive = async () => {
@@ -247,7 +335,8 @@ export default function JobDetailClient({ jobId }: JobDetailClientProps) {
               <AddCandidateDialog 
                 jobId={jobId} 
                 onSuccess={() => {
-                  // Data will be automatically refreshed via React Query
+                  // Refresh candidates list to show the newly scored candidate
+                  invalidateLists()
                 }}
               />
               {job.isArchived ? (
@@ -290,10 +379,6 @@ export default function JobDetailClient({ jobId }: JobDetailClientProps) {
                   </AlertDialogContent>
                 </AlertDialog>
               )}
-              <Button variant="outline" size="sm">
-                <Settings className="mr-2 h-4 w-4" />
-                Settings
-              </Button>
             </div>
           </div>
         </div>
@@ -323,12 +408,7 @@ export default function JobDetailClient({ jobId }: JobDetailClientProps) {
         <TabsContent value="candidates" className="flex-1 m-0">
           <div className="flex h-full">
             {/* Kanban Board */}
-            <div
-              className={cn(
-                "flex-1 overflow-hidden transition-all",
-                selectedCandidate ? "pr-0" : ""
-              )}
-            >
+            <div className="flex-1 overflow-hidden">
               {candidatesLoading ? (
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -339,27 +419,33 @@ export default function JobDetailClient({ jobId }: JobDetailClientProps) {
                   onCandidateSelect={setSelectedCandidate}
                   onStatusChange={handleStatusChange}
                   selectedCandidateId={selectedCandidate?.id}
+                  onApprove={handleApprove}
+                  onReject={handleReject}
+                  onSchedule={handleScheduleInterview}
                 />
               )}
             </div>
 
-            {/* Candidate Side Panel */}
-            {selectedCandidate && (
-              <CandidatePanel
-                candidate={{
-                  ...selectedCandidate,
-                  status:
-                    candidateStatuses[selectedCandidate.id] ||
-                    selectedCandidate.status,
-                }}
-                jobId={jobId}
-                jobTitle={job.title}
-                onClose={() => setSelectedCandidate(null)}
-                onStatusChange={(status) =>
-                  handleStatusChange(selectedCandidate.id, status)
-                }
-              />
-            )}
+            {/* Candidate Modal */}
+            {/* #region agent log */}
+            {(() => { fetch('http://127.0.0.1:7243/ingest/7c4bf3a4-0f60-40ce-82a9-6233b2ea9862',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'JobDetailClient.tsx:437',message:'Before CandidatePanel render',data:{selectedCandidateExists:!!selectedCandidate,selectedCandidateName:selectedCandidate?.name},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,C'})}).catch(()=>{}); return null; })()}
+            {/* #endregion */}
+            <CandidatePanel
+              candidate={selectedCandidate ? {
+                ...selectedCandidate,
+                status:
+                  candidateStatuses[selectedCandidate.id] ||
+                  selectedCandidate.status,
+              } : {} as Candidate}
+              jobId={jobId}
+              jobTitle={job.title}
+              open={!!selectedCandidate}
+              onClose={() => setSelectedCandidate(null)}
+              onStatusChange={(status) =>
+                selectedCandidate && handleStatusChange(selectedCandidate.id, status)
+              }
+              onDelete={() => setSelectedCandidate(null)}
+            />
           </div>
         </TabsContent>
 
@@ -367,6 +453,23 @@ export default function JobDetailClient({ jobId }: JobDetailClientProps) {
           <JobDetails job={job} />
         </TabsContent>
       </Tabs>
+
+      {/* Schedule Interview Dialog */}
+      {candidateToSchedule && (
+        <ScheduleDialog
+          open={scheduleDialogOpen}
+          onOpenChange={(open) => {
+            setScheduleDialogOpen(open)
+            if (!open) setCandidateToSchedule(null)
+          }}
+          candidateId={candidateToSchedule.id}
+          candidateName={candidateToSchedule.name}
+          candidateEmail={candidateToSchedule.email}
+          jobId={jobId}
+          jobTitle={job.title}
+          onScheduled={handleScheduled}
+        />
+      )}
     </div>
   )
 }

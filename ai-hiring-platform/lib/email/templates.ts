@@ -60,7 +60,7 @@ export function getInterviewScheduledTemplate(data: EmailTemplateData): EmailTem
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">${data.companyName || "AI Hiring Platform"}</div>
+      <div class="logo">${data.companyName || "Lontario"}</div>
     </div>
     
     <h2 style="text-align: center; color: #111827;">Your Interview is Scheduled!</h2>
@@ -110,7 +110,7 @@ export function getInterviewScheduledTemplate(data: EmailTemplateData): EmailTem
     <p>Good luck!</p>
     
     <div class="footer">
-      <p>This email was sent by ${data.companyName || "AI Hiring Platform"}</p>
+      <p>This email was sent by ${data.companyName || "Lontario"}</p>
       <p>If you didn't apply for this position, please ignore this email.</p>
     </div>
   </div>
@@ -171,7 +171,7 @@ export function getInterviewReminderTemplate(
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">${data.companyName || "AI Hiring Platform"}</div>
+      <div class="logo">${data.companyName || "Lontario"}</div>
     </div>
     
     <h2 style="text-align: center; color: #111827;">Interview Reminder</h2>
@@ -221,7 +221,7 @@ export function getInterviewReminderTemplate(
     }
     
     <div class="footer">
-      <p>This email was sent by ${data.companyName || "AI Hiring Platform"}</p>
+      <p>This email was sent by ${data.companyName || "Lontario"}</p>
     </div>
   </div>
 </body>
@@ -261,7 +261,7 @@ export function getInterviewCompletedTemplate(data: EmailTemplateData): EmailTem
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">${data.companyName || "AI Hiring Platform"}</div>
+      <div class="logo">${data.companyName || "Lontario"}</div>
     </div>
     
     <h2 style="text-align: center; color: #111827;">Interview Complete!</h2>
@@ -284,7 +284,7 @@ export function getInterviewCompletedTemplate(data: EmailTemplateData): EmailTem
     <p>Thank you for your interest in joining our team!</p>
     
     <div class="footer">
-      <p>This email was sent by ${data.companyName || "AI Hiring Platform"}</p>
+      <p>This email was sent by ${data.companyName || "Lontario"}</p>
     </div>
   </div>
 </body>
@@ -327,7 +327,7 @@ export function getInterviewRescheduledTemplate(data: EmailTemplateData): EmailT
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">${data.companyName || "AI Hiring Platform"}</div>
+      <div class="logo">${data.companyName || "Lontario"}</div>
     </div>
     
     <h2 style="text-align: center; color: #111827;">Interview Rescheduled</h2>
@@ -358,7 +358,7 @@ export function getInterviewRescheduledTemplate(data: EmailTemplateData): EmailT
     <p>We apologize for any inconvenience this may cause.</p>
     
     <div class="footer">
-      <p>This email was sent by ${data.companyName || "AI Hiring Platform"}</p>
+      <p>This email was sent by ${data.companyName || "Lontario"}</p>
     </div>
   </div>
 </body>
@@ -399,7 +399,7 @@ export function getInterviewCancelledTemplate(data: EmailTemplateData): EmailTem
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo">${data.companyName || "AI Hiring Platform"}</div>
+      <div class="logo">${data.companyName || "Lontario"}</div>
     </div>
     
     <h2 style="text-align: center; color: #111827;">Interview Cancelled</h2>
@@ -423,7 +423,7 @@ export function getInterviewCancelledTemplate(data: EmailTemplateData): EmailTem
     <p>We appreciate your interest and wish you the best in your job search.</p>
     
     <div class="footer">
-      <p>This email was sent by ${data.companyName || "AI Hiring Platform"}</p>
+      <p>This email was sent by ${data.companyName || "Lontario"}</p>
     </div>
   </div>
 </body>

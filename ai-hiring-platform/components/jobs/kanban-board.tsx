@@ -11,9 +11,12 @@ interface KanbanBoardProps {
   onCandidateSelect: (candidate: Candidate) => void
   onStatusChange: (candidateId: string, status: Candidate["status"]) => void
   selectedCandidateId?: string
+  onApprove?: (candidate: Candidate) => void
+  onReject?: (candidate: Candidate) => void
+  onSchedule?: (candidate: Candidate) => void
 }
 
-const columns: { status: Candidate["status"]; label: string }[] = [
+const columns: { status: Candidate["status"]; label: string; variant?: "destructive" }[] = [
   { status: "applied", label: "Applied" },
   { status: "screening", label: "Screening" },
   { status: "ai_interview", label: "AI Interview" },
@@ -22,6 +25,7 @@ const columns: { status: Candidate["status"]; label: string }[] = [
   { status: "onsite", label: "Onsite" },
   { status: "offer", label: "Offer" },
   { status: "hired", label: "Hired" },
+  { status: "rejected", label: "Rejected", variant: "destructive" },
 ]
 
 export function KanbanBoard({
@@ -29,6 +33,9 @@ export function KanbanBoard({
   onCandidateSelect,
   onStatusChange,
   selectedCandidateId,
+  onApprove,
+  onReject,
+  onSchedule,
 }: KanbanBoardProps) {
   const getCandidatesByStatus = (status: Candidate["status"]) => {
     return candidates
@@ -68,8 +75,18 @@ export function KanbanBoard({
             >
               {/* Column Header */}
               <div className="flex items-center justify-between mb-3 px-1">
-                <h3 className="font-medium text-foreground">{column.label}</h3>
-                <span className="text-sm text-muted-foreground bg-muted rounded-full px-2 py-0.5">
+                <h3 className={cn(
+                  "font-medium",
+                  column.variant === "destructive" ? "text-destructive" : "text-foreground"
+                )}>
+                  {column.label}
+                </h3>
+                <span className={cn(
+                  "text-sm rounded-full px-2 py-0.5",
+                  column.variant === "destructive" 
+                    ? "text-destructive bg-destructive/10" 
+                    : "text-muted-foreground bg-muted"
+                )}>
                   {columnCandidates.length}
                 </span>
               </div>
@@ -77,9 +94,11 @@ export function KanbanBoard({
               {/* Column Content */}
               <div
                 className={cn(
-                  "flex-1 rounded-lg bg-muted/30 p-2 space-y-2 overflow-y-auto",
+                  "flex-1 rounded-lg p-2 space-y-2 overflow-y-auto",
                   "border-2 border-dashed border-transparent transition-colors",
-                  "hover:border-muted-foreground/20"
+                  column.variant === "destructive" 
+                    ? "bg-destructive/5 hover:border-destructive/20" 
+                    : "bg-muted/30 hover:border-muted-foreground/20"
                 )}
               >
                 {columnCandidates.length === 0 ? (
@@ -94,6 +113,9 @@ export function KanbanBoard({
                       onClick={() => onCandidateSelect(candidate)}
                       onDragStart={(e) => handleDragStart(e, candidate)}
                       isSelected={selectedCandidateId === candidate.id}
+                      onApprove={onApprove}
+                      onReject={onReject}
+                      onSchedule={onSchedule}
                     />
                   ))
                 )}

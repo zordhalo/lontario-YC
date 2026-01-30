@@ -16,7 +16,52 @@ import {
   EmptyContent,
 } from "@/components/ui/empty"
 import { useJobs } from "@/hooks/use-jobs"
-import { normalizeJob } from "@/lib/mock-data"
+import { normalizeJob, type StageCounts } from "@/lib/mock-data"
+
+// Calculate pipeline progress from real stage data
+function calculatePipelineProgress(stageCounts: StageCounts | undefined, totalApplicants: number): number {
+  if (!stageCounts || totalApplicants === 0) {
+    return 0
+  }
+
+  const progressStages = [
+    "screening",
+    "ai_interview", 
+    "phone_screen",
+    "technical",
+    "onsite",
+    "offer",
+    "hired",
+  ] as const
+
+  const progressedCount = progressStages.reduce((sum, stage) => {
+    return sum + (stageCounts[stage] || 0)
+  }, 0)
+
+  return Math.round((progressedCount / totalApplicants) * 100)
+}
+
+// Get counts for display
+function getStageBreakdown(stageCounts: StageCounts | undefined): { 
+  applied: number
+  screened: number
+  interview: number
+} {
+  if (!stageCounts) {
+    return { applied: 0, screened: 0, interview: 0 }
+  }
+
+  return {
+    applied: stageCounts.applied || 0,
+    screened: stageCounts.screening || 0,
+    interview: (stageCounts.ai_interview || 0) + 
+               (stageCounts.phone_screen || 0) + 
+               (stageCounts.technical || 0) + 
+               (stageCounts.onsite || 0) +
+               (stageCounts.offer || 0) +
+               (stageCounts.hired || 0),
+  }
+}
 
 export function PipelineSection() {
   const { data, isLoading, error } = useJobs({ status: "active" })
@@ -101,12 +146,9 @@ export function PipelineSection() {
       </CardHeader>
       <CardContent className="space-y-4">
         {activeJobs.map((job) => {
-          const screened = Math.floor(job.applicants * 0.4)
-          const interview = Math.floor(job.applicants * 0.15)
-          const progress =
-            job.applicants > 0
-              ? Math.round(((screened + interview) / job.applicants) * 100)
-              : 0
+          const stageCounts = job.stageCounts || job.stage_counts
+          const progress = calculatePipelineProgress(stageCounts, job.applicants)
+          const breakdown = getStageBreakdown(stageCounts)
 
           return (
             <Link
@@ -138,9 +180,9 @@ export function PipelineSection() {
                   </div>
                   <Progress value={progress} className="h-2" />
                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span>Applied: {job.applicants}</span>
-                    <span>Screened: {screened}</span>
-                    <span>Interview: {interview}</span>
+                    <span>Applied: {breakdown.applied}</span>
+                    <span>Screened: {breakdown.screened}</span>
+                    <span>Interview: {breakdown.interview}</span>
                   </div>
                 </div>
               </div>

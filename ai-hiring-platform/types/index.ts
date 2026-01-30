@@ -130,6 +130,7 @@ export interface Candidate {
   ai_strengths: string[] | null;
   ai_concerns: string[] | null;
   extracted_skills: string[] | null;
+  avatar_url: string | null;
   years_of_experience: number | null;
   education_level: string | null;
   stage: CandidateStage;
@@ -265,10 +266,13 @@ export interface CandidateProfile {
   url?: string;
   name: string;
   bio?: string;
+  avatar_url?: string;
   skills: string[];
   experience: string[];
   projects?: CandidateProject[];
   languages?: Record<string, number>;
+  years_of_experience?: number;
+  github_created_at?: string;
 }
 
 export const CandidateProfileSchema = z.object({
@@ -276,6 +280,7 @@ export const CandidateProfileSchema = z.object({
   url: z.string().optional(),
   name: z.string().min(1, "Name is required"),
   bio: z.string().optional(),
+  avatar_url: z.string().optional(),
   skills: z.array(z.string()),
   experience: z.array(z.string()),
   projects: z
@@ -289,6 +294,8 @@ export const CandidateProfileSchema = z.object({
     )
     .optional(),
   languages: z.record(z.string(), z.number()).optional(),
+  years_of_experience: z.number().optional(),
+  github_created_at: z.string().optional(),
 });
 
 export interface ScoringCriteria {

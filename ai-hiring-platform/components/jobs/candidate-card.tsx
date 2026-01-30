@@ -5,7 +5,7 @@ import React from "react"
 import { Calendar, MoreHorizontal, ThumbsDown, ThumbsUp } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card, CardContent } from "@/components/ui/card"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -13,6 +13,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { AIScoreBadge } from "@/components/ai-score-badge"
 import type { Candidate } from "@/lib/mock-data"
 
@@ -21,6 +26,9 @@ interface CandidateCardProps {
   onClick: () => void
   onDragStart: (e: React.DragEvent) => void
   isSelected?: boolean
+  onApprove?: (candidate: Candidate) => void
+  onReject?: (candidate: Candidate) => void
+  onSchedule?: (candidate: Candidate) => void
 }
 
 export function CandidateCard({
@@ -28,6 +36,9 @@ export function CandidateCard({
   onClick,
   onDragStart,
   isSelected,
+  onApprove,
+  onReject,
+  onSchedule,
 }: CandidateCardProps) {
   const initials = candidate.name
     .split(" ")
@@ -49,6 +60,13 @@ export function CandidateCard({
         <div className="flex items-start justify-between gap-2 mb-2">
           <div className="flex items-center gap-2 min-w-0">
             <Avatar className="h-8 w-8 shrink-0">
+              {(candidate.avatar_url || candidate.avatar) ? (
+                <AvatarImage 
+                  src={candidate.avatar_url || candidate.avatar} 
+                  alt={candidate.name}
+                  className="object-cover"
+                />
+              ) : null}
               <AvatarFallback className="text-xs bg-primary/10 text-primary">
                 {initials}
               </AvatarFallback>
@@ -89,39 +107,57 @@ export function CandidateCard({
         {/* Quick Actions */}
         <div className="flex items-center justify-between pt-2 border-t border-border">
           <div className="flex items-center gap-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-success"
-              onClick={(e) => {
-                e.stopPropagation()
-              }}
-            >
-              <ThumbsUp className="h-3.5 w-3.5" />
-              <span className="sr-only">Approve</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-destructive"
-              onClick={(e) => {
-                e.stopPropagation()
-              }}
-            >
-              <ThumbsDown className="h-3.5 w-3.5" />
-              <span className="sr-only">Reject</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-primary"
-              onClick={(e) => {
-                e.stopPropagation()
-              }}
-            >
-              <Calendar className="h-3.5 w-3.5" />
-              <span className="sr-only">Schedule Interview</span>
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-success"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onApprove?.(candidate)
+                  }}
+                >
+                  <ThumbsUp className="h-3.5 w-3.5" />
+                  <span className="sr-only">Move to next stage</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Move to next stage</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onReject?.(candidate)
+                  }}
+                >
+                  <ThumbsDown className="h-3.5 w-3.5" />
+                  <span className="sr-only">Reject</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Reject candidate</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-primary"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onSchedule?.(candidate)
+                  }}
+                >
+                  <Calendar className="h-3.5 w-3.5" />
+                  <span className="sr-only">Schedule Interview</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Schedule AI Interview</TooltipContent>
+            </Tooltip>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

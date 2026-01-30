@@ -10,6 +10,7 @@ interface GitHubUser {
   avatar_url: string;
   public_repos: number;
   followers: number;
+  created_at: string;
 }
 
 interface GitHubRepo {
@@ -104,15 +105,24 @@ export async function fetchGitHubProfile(
       stars: r.stargazers_count,
     }));
 
+    // Calculate years of experience from GitHub account creation date
+    const accountCreated = new Date(user.created_at);
+    const yearsOnGitHub = Math.floor(
+      (Date.now() - accountCreated.getTime()) / (1000 * 60 * 60 * 24 * 365)
+    );
+
     return {
       source: "github",
       url: `https://github.com/${username}`,
       name: user.name || username,
       bio: user.bio || undefined,
+      avatar_url: user.avatar_url,
       skills,
       experience,
       projects,
       languages: sortedLanguages,
+      years_of_experience: yearsOnGitHub,
+      github_created_at: user.created_at,
     };
   } catch (error) {
     if (axios.isAxiosError(error)) {

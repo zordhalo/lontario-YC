@@ -26,6 +26,8 @@ interface ScoringResult {
   ai_concerns?: string[];
   ai_score_breakdown?: MatchScore["breakdown"];
   extracted_skills?: string[];
+  avatar_url?: string;
+  years_of_experience?: number;
   error?: string;
 }
 
@@ -35,9 +37,11 @@ interface ScoringResult {
  */
 async function fetchCandidateProfileData(
   candidate: CandidateForScoring
-): Promise<{ profile: CandidateProfile | null; resumeText: string }> {
+): Promise<{ profile: CandidateProfile | null; resumeText: string; avatarUrl?: string; yearsOfExperience?: number }> {
   let profile: CandidateProfile | null = null;
   let resumeText = candidate.resume_text || candidate.cover_letter || "";
+  let avatarUrl: string | undefined;
+  let yearsOfExperience: number | undefined;
 
   // Try to fetch GitHub profile if URL provided
   if (candidate.github_url) {
@@ -45,11 +49,17 @@ async function fetchCandidateProfileData(
       const username = extractGitHubUsername(candidate.github_url);
       if (username) {
         profile = await fetchGitHubProfile(username);
+        
+        // Extract avatar URL and years of experience from GitHub profile
+        avatarUrl = profile.avatar_url;
+        yearsOfExperience = profile.years_of_experience;
+        
         // Build resume text from GitHub data
         const githubText = [
           `Name: ${profile.name}`,
           profile.bio ? `Bio: ${profile.bio}` : "",
           `Skills: ${profile.skills.join(", ")}`,
+          yearsOfExperience ? `Years on GitHub: ${yearsOfExperience}` : "",
           `Experience:`,
           ...profile.experience.map((e) => `- ${e}`),
           profile.projects
@@ -84,7 +94,7 @@ async function fetchCandidateProfileData(
     }
   }
 
-  return { profile, resumeText };
+  return { profile, resumeText, avatarUrl, yearsOfExperience };
 }
 
 /**
@@ -112,7 +122,7 @@ export async function scoreCandidateForJob(
     }
 
     // Fetch candidate profile data from GitHub/LinkedIn
-    const { profile, resumeText } = await fetchCandidateProfileData(candidate);
+    const { profile, resumeText, avatarUrl, yearsOfExperience } = await fetchCandidateProfileData(candidate);
 
     // If we don't have enough data to score, return early
     if (!resumeText || resumeText.length < 50) {
@@ -125,6 +135,8 @@ export async function scoreCandidateForJob(
         ai_strengths: [],
         ai_concerns: ["No resume or profile data available for analysis"],
         extracted_skills: profile?.skills || [],
+        avatar_url: avatarUrl,
+        years_of_experience: yearsOfExperience,
       };
     }
 
@@ -159,6 +171,8 @@ export async function scoreCandidateForJob(
         ...matchScore.skills_analysis.matched,
         ...matchScore.skills_analysis.bonus,
       ],
+      avatar_url: avatarUrl,
+      years_of_experience: yearsOfExperience,
     };
   } catch (error) {
     console.error("Error scoring candidate:", error);
@@ -206,6 +220,14 @@ export async function updateCandidateWithScore(
     updateData.ai_concerns = scoringResult.ai_concerns;
     updateData.ai_score_breakdown = scoringResult.ai_score_breakdown;
     updateData.extracted_skills = scoringResult.extracted_skills;
+    
+    // Store GitHub profile data
+    if (scoringResult.avatar_url) {
+      updateData.avatar_url = scoringResult.avatar_url;
+    }
+    if (scoringResult.years_of_experience !== undefined) {
+      updateData.years_of_experience = scoringResult.years_of_experience;
+    }
   }
 
   const { error } = await supabase

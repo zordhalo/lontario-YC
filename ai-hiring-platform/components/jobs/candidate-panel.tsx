@@ -1,10 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import {
   AlertCircle,
   Calendar,
+  CalendarClock,
   CheckCircle,
+  ClipboardCheck,
   ExternalLink,
   Github,
   Globe,
@@ -17,7 +19,7 @@ import {
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   Select,
   SelectContent,
@@ -25,6 +27,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,16 +46,19 @@ import {
 import { AIScoreBadge } from "@/components/ai-score-badge"
 import { ScheduleDialog } from "@/components/interview"
 import { useToast } from "@/hooks/use-toast"
-import { useDeleteCandidate } from "@/hooks/use-candidates"
+import { useDeleteCandidate, useCandidate } from "@/hooks/use-candidates"
 import type { Candidate } from "@/lib/mock-data"
+import type { AIInterview } from "@/types"
 
 interface CandidatePanelProps {
   candidate: Candidate
   jobId?: string
   jobTitle?: string
+  open: boolean
   onClose: () => void
   onStatusChange: (status: Candidate["status"]) => void
   onInterviewScheduled?: (interview: { id: string; scheduled_at: string; interview_link: string }) => void
+  onDelete?: () => void
 }
 
 const statusOptions: { value: Candidate["status"]; label: string }[] = [
@@ -66,14 +77,72 @@ export function CandidatePanel({
   candidate,
   jobId,
   jobTitle,
+  open,
   onClose,
   onStatusChange,
   onInterviewScheduled,
+  onDelete,
 }: CandidatePanelProps) {
+  // #region agent log
+  fetch('http://127.0.0.1:7243/ingest/7c4bf3a4-0f60-40ce-82a9-6233b2ea9862',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'candidate-panel.tsx:86',message:'CandidatePanel render entry',data:{open,hasCandidate:!!candidate,candidateName:candidate?.name,candidateId:candidate?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A,B'})}).catch(()=>{});
+  // #endregion
+  
+  // All hooks must be called before any early return (Rules of Hooks)
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const { toast } = useToast()
+  const deleteCandidate = useDeleteCandidate()
+  
+  // Fetch detailed candidate data including interview (only when we have a valid candidate)
+  const { data: candidateDetails } = useCandidate(open && candidate?.id ? candidate.id : '')
+  const interview = candidateDetails?.interview as AIInterview | null
+  
+  // Merge fresh API data with prop data to display up-to-date scored information
+  const displayCandidate = useMemo(() => {
+    if (!candidateDetails) return candidate;
+    
+    // Merge fresh data from API with prop data
+    // API data takes precedence when available
+    const details = candidateDetails as Record<string, unknown>;
+    return {
+      ...candidate,
+      // Avatar - prefer fresh API data
+      avatar_url: (details.avatar_url as string) || candidate.avatar_url,
+      avatar: (details.avatar_url as string) || candidate.avatar,
+      // AI Score - prefer fresh API data
+      aiScore: (details.ai_score as number) ?? candidate.aiScore ?? 0,
+      ai_score: (details.ai_score as number) ?? candidate.ai_score,
+      // Skills - prefer fresh API data
+      skills: (details.extracted_skills as string[]) || candidate.skills || [],
+      extracted_skills: (details.extracted_skills as string[]) || candidate.extracted_skills,
+      // Experience - calculate from years if available
+      experience: (details.years_of_experience as number)
+        ? `${details.years_of_experience} years`
+        : candidate.experience,
+      years_of_experience: (details.years_of_experience as number) ?? candidate.years_of_experience,
+      // AI Analysis
+      summary: (details.ai_summary as string) || candidate.summary,
+      ai_summary: (details.ai_summary as string) || candidate.ai_summary,
+      strengths: (details.ai_strengths as string[]) || candidate.strengths,
+      ai_strengths: (details.ai_strengths as string[]) || candidate.ai_strengths,
+      concerns: (details.ai_concerns as string[]) || candidate.concerns,
+      ai_concerns: (details.ai_concerns as string[]) || candidate.ai_concerns,
+    };
+  }, [candidate, candidateDetails]);
+  
+  // Check if there's a scheduled interview
+  const hasScheduledInterview = interview?.scheduled_at && 
+    ['scheduled', 'ready', 'sent', 'pending'].includes(interview?.status || '')
+  
+  // Check if interview is completed
+  const hasCompletedInterview = interview?.status === 'completed'
 
-  const initials = candidate.name
+  // Early return if no valid candidate - prevents errors when dialog is closed
+  if (!open || !candidate?.name) {
+    return null
+  }
+
+  const initials = displayCandidate.name
     .split(" ")
     .map((n) => n[0])
     .join("")
@@ -86,73 +155,177 @@ export function CandidatePanel({
     onInterviewScheduled?.(interview)
   }
 
+  const handleDeleteCandidate = async () => {
+    try {
+      await deleteCandidate.mutateAsync(candidate.id)
+      toast({
+        title: "Candidate Deleted",
+        description: `${candidate.name} has been removed from the pipeline.`,
+      })
+      setDeleteDialogOpen(false)
+      onClose()
+      onDelete?.()
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to delete candidate",
+        variant: "destructive",
+      })
+    }
+  }
+
   return (
-    <div className="w-96 border-l border-border bg-card flex flex-col h-full">
-      {/* Header */}
-      <div className="p-4 border-b border-border">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-12 w-12">
-              <AvatarFallback className="text-lg bg-primary/10 text-primary">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h2 className="font-semibold text-foreground">{candidate.name}</h2>
-              <p className="text-sm text-muted-foreground">
-                {candidate.experience} experience
-              </p>
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent className="max-w-[70vw] sm:max-w-[70vw] w-[70vw] h-[85vh] max-h-[85vh] p-0 flex flex-col overflow-hidden">
+        {/* Header */}
+        <DialogHeader className="p-6 pb-4 border-b border-border shrink-0">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-4">
+              <Avatar className="h-14 w-14">
+                {(candidate.avatar_url || candidate.avatar) ? (
+                  <AvatarImage 
+                    src={candidate.avatar_url || candidate.avatar} 
+                    alt={candidate.name}
+                    className="object-cover"
+                  />
+                ) : null}
+                <AvatarFallback className="text-xl bg-primary/10 text-primary">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <DialogTitle className="text-xl font-semibold text-foreground">
+                  {candidate.name}
+                </DialogTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {candidate.experience} experience
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <AIScoreBadge
+                score={candidate.aiScore}
+                size="lg"
+                showIcon
+                explanation="AI match score based on skills, experience, and job requirements analysis."
+              />
+              <Select
+                value={candidate.status}
+                onValueChange={(value) =>
+                  onStatusChange(value as Candidate["status"])
+                }
+              >
+                <SelectTrigger className="w-36">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close panel</span>
-          </Button>
-        </div>
+        </DialogHeader>
 
-        <div className="flex items-center justify-between">
-          <AIScoreBadge
-            score={candidate.aiScore}
-            size="lg"
-            showIcon
-            explanation="AI match score based on skills, experience, and job requirements analysis."
-          />
-          <Select
-            value={candidate.status}
-            onValueChange={(value) =>
-              onStatusChange(value as Candidate["status"])
-            }
-          >
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {statusOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+        {/* Tabs */}
+        <Tabs defaultValue="summary" className="flex-1 flex flex-col min-h-0">
+          <TabsList className="mx-6 mt-4 shrink-0">
+            <TabsTrigger value="summary" className="flex-1">
+              AI Summary
+            </TabsTrigger>
+            <TabsTrigger value="resume" className="flex-1">
+              Resume
+            </TabsTrigger>
+            <TabsTrigger value="timeline" className="flex-1">
+              Timeline
+            </TabsTrigger>
+          </TabsList>
 
-      {/* Tabs */}
-      <Tabs defaultValue="summary" className="flex-1 flex flex-col">
-        <TabsList className="mx-4 mt-2">
-          <TabsTrigger value="summary" className="flex-1">
-            AI Summary
-          </TabsTrigger>
-          <TabsTrigger value="resume" className="flex-1">
-            Resume
-          </TabsTrigger>
-          <TabsTrigger value="timeline" className="flex-1">
-            Timeline
-          </TabsTrigger>
-        </TabsList>
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <TabsContent value="summary" className="m-0 p-6 space-y-6">
+            {/* Interview Results - Show if completed */}
+            {hasCompletedInterview && interview && (
+              <section className="bg-primary/5 rounded-lg p-4 border border-primary/20">
+                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <ClipboardCheck className="h-4 w-4 text-primary" />
+                  Interview Results
+                </h3>
+                <div className="space-y-3">
+                  {/* Score and Recommendation */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">Interview Score</span>
+                    <span className={cn(
+                      "text-lg font-semibold",
+                      (interview.overall_score ?? 0) >= 70 ? "text-success" :
+                      (interview.overall_score ?? 0) >= 50 ? "text-warning" : "text-destructive"
+                    )}>
+                      {interview.overall_score ?? 0}%
+                    </span>
+                  </div>
+                  {interview.recommendation && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Recommendation</span>
+                      <span className={cn(
+                        "text-sm font-medium px-2 py-0.5 rounded-full",
+                        interview.recommendation === "strong_yes" && "bg-success/20 text-success",
+                        interview.recommendation === "yes" && "bg-success/10 text-success",
+                        interview.recommendation === "maybe" && "bg-warning/20 text-warning",
+                        interview.recommendation === "no" && "bg-destructive/10 text-destructive",
+                        interview.recommendation === "strong_no" && "bg-destructive/20 text-destructive"
+                      )}>
+                        {interview.recommendation.replace("_", " ")}
+                      </span>
+                    </div>
+                  )}
+                  {interview.completed_at && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Completed</span>
+                      <span className="text-sm text-foreground">
+                        {new Date(interview.completed_at).toLocaleDateString(undefined, {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </span>
+                    </div>
+                  )}
+                  {/* Interview Summary */}
+                  {interview.ai_summary && (
+                    <div className="pt-2 border-t border-border/50">
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {interview.ai_summary}
+                      </p>
+                    </div>
+                  )}
+                  {/* Strengths from interview */}
+                  {interview.strengths && interview.strengths.length > 0 && (
+                    <div className="pt-2 space-y-1.5">
+                      {interview.strengths.map((strength, index) => (
+                        <div key={index} className="flex items-start gap-2 text-sm">
+                          <CheckCircle className="h-3.5 w-3.5 text-success mt-0.5 shrink-0" />
+                          <span className="text-foreground">{strength}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {/* Concerns from interview */}
+                  {interview.concerns && interview.concerns.length > 0 && (
+                    <div className="space-y-1.5">
+                      {interview.concerns.map((concern, index) => (
+                        <div key={index} className="flex items-start gap-2 text-sm">
+                          <AlertCircle className="h-3.5 w-3.5 text-warning mt-0.5 shrink-0" />
+                          <span className="text-foreground">{concern}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
 
-        <div className="flex-1 overflow-y-auto">
-          <TabsContent value="summary" className="m-0 p-4 space-y-6">
             {/* AI Match Breakdown */}
             <section>
               <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
@@ -253,9 +426,9 @@ export function CandidatePanel({
                 )}
               </div>
             </section>
-          </TabsContent>
+            </TabsContent>
 
-          <TabsContent value="resume" className="m-0 p-4">
+            <TabsContent value="resume" className="m-0 p-6">
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <div className="h-16 w-16 rounded-full bg-muted flex items-center justify-center mb-4">
                 <ExternalLink className="h-8 w-8 text-muted-foreground" />
@@ -270,9 +443,9 @@ export function CandidatePanel({
                 Download Resume
               </Button>
             </div>
-          </TabsContent>
+            </TabsContent>
 
-          <TabsContent value="timeline" className="m-0 p-4">
+            <TabsContent value="timeline" className="m-0 p-6">
             <div className="space-y-4">
               <div className="flex gap-3">
                 <div className="flex flex-col items-center">
@@ -300,6 +473,25 @@ export function CandidatePanel({
                   </p>
                 </div>
               </div>
+              {hasCompletedInterview && interview?.completed_at && (
+                <div className="flex gap-3">
+                  <div className="flex flex-col items-center">
+                    <div className="h-2 w-2 rounded-full bg-success" />
+                    <div className="w-px flex-1 bg-border" />
+                  </div>
+                  <div className="pb-4">
+                    <p className="text-sm font-medium text-foreground">
+                      AI Interview Completed
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Scored {interview.overall_score}% • {interview.recommendation?.replace("_", " ")}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(interview.completed_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+              )}
               {candidate.status !== "applied" && (
                 <div className="flex gap-3">
                   <div className="flex flex-col items-center">
@@ -314,27 +506,51 @@ export function CandidatePanel({
                 </div>
               )}
             </div>
-          </TabsContent>
-        </div>
-      </Tabs>
+            </TabsContent>
+          </div>
+        </Tabs>
 
-      {/* Actions */}
-      <div className="p-4 border-t border-border space-y-2">
+        {/* Actions */}
+        <div className="p-6 border-t border-border space-y-3 shrink-0">
+        {/* Show scheduled interview info */}
+        {hasScheduledInterview && interview?.scheduled_at && (
+          <div className="flex items-center gap-2 p-3 rounded-lg bg-primary/10 text-primary mb-2">
+            <CalendarClock className="h-4 w-4 shrink-0" />
+            <div className="text-sm">
+              <span className="font-medium">Interview scheduled for </span>
+              <span>
+                {new Date(interview.scheduled_at).toLocaleDateString(undefined, {
+                  weekday: 'short',
+                  month: 'short', 
+                  day: 'numeric',
+                })} at {new Date(interview.scheduled_at).toLocaleTimeString(undefined, {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                })}
+              </span>
+            </div>
+          </div>
+        )}
         <Button 
           className="w-full"
           onClick={() => setScheduleDialogOpen(true)}
           disabled={!jobId}
         >
           <Calendar className="mr-2 h-4 w-4" />
-          Schedule Interview
+          {hasScheduledInterview ? 'Reschedule Interview' : 'Schedule Interview'}
         </Button>
         <div className="flex gap-2">
           <Button variant="outline" className="flex-1 bg-transparent">
             <Mail className="mr-2 h-4 w-4" />
             Message
           </Button>
-          <Button variant="outline" className="flex-1 text-destructive hover:text-destructive bg-transparent">
-            Reject
+          <Button 
+            variant="outline" 
+            className="flex-1 text-destructive hover:text-destructive hover:bg-destructive/10 bg-transparent"
+            onClick={() => setDeleteDialogOpen(true)}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete
           </Button>
         </div>
       </div>
@@ -352,6 +568,35 @@ export function CandidatePanel({
           onScheduled={handleInterviewScheduled}
         />
       )}
-    </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Candidate</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <span className="font-medium text-foreground">{candidate.name}</span>? 
+              This action cannot be undone and will permanently remove the candidate from this job pipeline.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteCandidate.isPending}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteCandidate}
+              disabled={deleteCandidate.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteCandidate.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      </DialogContent>
+    </Dialog>
   )
 }
