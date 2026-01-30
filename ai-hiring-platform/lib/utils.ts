@@ -115,3 +115,31 @@ export function getCategoryLabel(category: string): string {
       return category
   }
 }
+
+/**
+ * Gets the application base URL for generating links
+ * 
+ * Priority order:
+ * 1. NEXT_PUBLIC_APP_URL - Explicit app URL (use for custom domains)
+ * 2. VERCEL_URL - Automatically set by Vercel for all deployments
+ * 3. localhost:3000 - Fallback for local development
+ * 
+ * @returns The base URL without trailing slash
+ * 
+ * @example
+ * getAppUrl() // 'https://myapp.vercel.app' or 'http://localhost:3000'
+ */
+export function getAppUrl(): string {
+  // Explicit app URL takes priority (for custom domains)
+  if (process.env.NEXT_PUBLIC_APP_URL) {
+    return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, '');
+  }
+  
+  // Vercel automatically provides this in all deployments
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  
+  // Fallback for local development
+  return 'http://localhost:3000';
+}

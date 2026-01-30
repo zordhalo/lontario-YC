@@ -21,6 +21,7 @@ import {
   isGitHubUrl,
   scoreCandidate,
 } from "@/lib/ai";
+import { getAppUrl } from "@/lib/utils";
 import type { CandidateProfile, MatchScore, Job } from "@/types";
 
 // ============================================================
@@ -305,7 +306,7 @@ export async function processAndScoreCandidate(
  * This runs asynchronously after candidate scoring to prepare for fast interview scheduling
  */
 async function triggerQuestionPregeneration(candidateId: string): Promise<void> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const baseUrl = getAppUrl();
   
   try {
     const response = await fetch(

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateInterviewQuestions } from "@/lib/ai/openai";
+import { getAppUrl } from "@/lib/utils";
 import {
   ScheduleInterviewRequestSchema,
   ScheduleInterviewResponse,
@@ -116,7 +117,7 @@ export async function POST(request: NextRequest) {
     const accessToken = crypto.randomUUID();
 
     // Build interview link
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const baseUrl = getAppUrl();
     const interviewLink = `${baseUrl}/interview/${accessToken}`;
 
     // Calculate expiration (24 hours after scheduled time)
