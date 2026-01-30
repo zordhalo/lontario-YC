@@ -128,12 +128,12 @@ export function Navbar() {
             </div>
           </div>
           <div className="hidden md:flex items-center gap-4">
-            <Link href="/jobs">
+            <Link href="/dashboard">
               <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                 Sign in
               </Button>
             </Link>
-            <Link href="/jobs">
+            <Link href="/dashboard">
               <Button size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-sm">
                 Get a demo
               </Button>
@@ -170,12 +170,12 @@ export function Navbar() {
               );
             })}
             <div className="pt-4 flex flex-col gap-3 border-t border-border mt-4">
-              <Link href="/jobs">
+              <Link href="/dashboard">
                 <Button variant="ghost" size="sm" className="w-full justify-center">
                   Sign in
                 </Button>
               </Link>
-              <Link href="/jobs">
+              <Link href="/dashboard">
                 <Button size="sm" className="w-full bg-accent text-accent-foreground">
                   Get a demo
                 </Button>

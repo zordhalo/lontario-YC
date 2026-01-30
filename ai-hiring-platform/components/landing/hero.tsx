@@ -79,7 +79,7 @@ export function Hero() {
         
         {/* CTAs with animation and improved hierarchy */}
         <div className={`mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 ${mounted ? 'animate-fade-in-up stagger-4' : 'opacity-0'}`}>
-          <Link href="/jobs">
+          <Link href="/dashboard">
             <Button 
               size="lg" 
               className="bg-accent text-accent-foreground hover:bg-accent/90 px-8 h-12 text-base font-semibold shadow-lg shadow-accent/20 btn-lift"
