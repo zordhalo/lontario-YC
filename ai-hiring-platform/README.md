@@ -51,7 +51,7 @@ cp .env.example .env.local
 ```bash
 # Required
 NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOi...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_...  # Publishable key from Supabase
 OPENAI_API_KEY=sk-...
 
 # Optional
@@ -77,6 +77,7 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 ai-hiring-platform/
 ├── app/                     # Next.js App Router pages
 │   ├── (dashboard)/         # Dashboard layout and pages
+│   │   ├── interview/       # AI Interview Generator
 │   │   ├── jobs/            # Job listing and details
 │   │   └── page.tsx         # Dashboard home
 │   ├── api/                 # API routes
@@ -86,6 +87,7 @@ ai-hiring-platform/
 │   └── layout.tsx           # Root layout
 ├── components/              # React components
 │   ├── ui/                  # shadcn/ui components
+│   ├── interview/           # Interview generator components
 │   ├── jobs/                # Job-related components
 │   └── dashboard/           # Dashboard components
 ├── hooks/                   # Custom React hooks
@@ -97,6 +99,8 @@ ai-hiring-platform/
 │   │   ├── openai.ts        # OpenAI client
 │   │   ├── github.ts        # GitHub profile fetching
 │   │   └── linkedin.ts      # LinkedIn profile fetching
+│   ├── stores/              # Zustand state stores
+│   │   └── interview-store.ts
 │   ├── supabase/            # Supabase clients
 │   └── utils.ts             # Utility functions
 ├── types/                   # TypeScript types
@@ -161,8 +165,8 @@ pnpm build
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Yes* | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes* | Supabase anonymous key |
-| `SUPABASE_SERVICE_ROLE_KEY` | No | Admin operations key |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes* | Supabase publishable key (client-side, RLS) |
+| `SUPABASE_SERVICE_ROLE_KEY` | No | Supabase secret key (admin operations) |
 | `OPENAI_API_KEY` | Yes | OpenAI API key for AI features |
 | `GITHUB_TOKEN` | No | GitHub token for higher rate limits |
 | `PROXYCURL_API_KEY` | No | Proxycurl API key for LinkedIn |
@@ -170,6 +174,34 @@ pnpm build
 *Not required for demo mode
 
 ## AI Features
+
+### AI Interview Generator (`/interview`)
+
+A 3-step wizard for generating personalized interview questions:
+
+**Step 1: Job Details**
+- Enter job title, level, and description
+- Add required skills and nice-to-have skills
+- Minimum 100 character description required
+
+**Step 2: Candidate Profile**
+- Fetch profile from GitHub or LinkedIn URL
+- Or manually enter candidate information
+- Auto-extracts skills and experience from profiles
+
+**Step 3: Questions**
+- View 8-10 personalized questions
+- Filter by category (Technical, Behavioral, System Design, Problem Solving)
+- See difficulty breakdown and time estimates
+- Expandable scoring rubrics with evaluation criteria
+- Generate intelligent follow-up questions
+
+**Usage:**
+1. Navigate to `/interview` in the application
+2. Fill in the job description form
+3. Fetch or enter candidate profile
+4. Review generated questions with scoring rubrics
+5. Use follow-up generator for deeper probing
 
 ### Interview Question Generation
 Generates 8-10 personalized interview questions based on:
@@ -203,6 +235,11 @@ Extracts structured data including:
 - Work experience
 - Education history
 - Years of experience
+
+### Cost Estimates
+- **OpenAI GPT-4o**: ~$0.10-0.30 per question set generation
+- **GitHub API**: Free (60 req/hr without token, 5000 req/hr with token)
+- **Proxycurl (LinkedIn)**: ~$0.03 per profile lookup (optional)
 
 ## Contributing
 

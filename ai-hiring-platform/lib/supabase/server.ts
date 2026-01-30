@@ -3,21 +3,21 @@ import { cookies } from "next/headers";
 
 /**
  * Creates a Supabase client for server-side usage (Server Components, API Routes)
- * Handles cookie management for auth session
+ * Uses the publishable key with cookie management for auth session
  */
 export async function createClient() {
   const cookieStore = await cookies();
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseUrl || !supabasePublishableKey) {
     throw new Error(
       "Missing Supabase environment variables. Please set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY"
     );
   }
 
-  return createServerClient(supabaseUrl, supabaseAnonKey, {
+  return createServerClient(supabaseUrl, supabasePublishableKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -36,20 +36,20 @@ export async function createClient() {
 }
 
 /**
- * Creates an admin Supabase client with service role key
+ * Creates an admin Supabase client with secret key
  * Use for background jobs and admin operations that bypass RLS
  */
 export function createAdminClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const secretKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  if (!supabaseUrl || !serviceRoleKey) {
+  if (!supabaseUrl || !secretKey) {
     throw new Error(
       "Missing Supabase admin environment variables. Please set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY"
     );
   }
 
-  return createServerClient(supabaseUrl, serviceRoleKey, {
+  return createServerClient(supabaseUrl, secretKey, {
     cookies: {
       getAll: () => [],
       setAll: () => {},
