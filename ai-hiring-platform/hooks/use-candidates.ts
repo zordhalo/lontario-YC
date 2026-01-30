@@ -134,7 +134,9 @@ export function useCandidate(id: string) {
     queryKey: candidateKeys.detail(id),
     queryFn: () => fetchCandidate(id),
     enabled: !!id,
-    staleTime: 30_000,
+    // Always refetch when component mounts to get latest scoring data
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 }
 

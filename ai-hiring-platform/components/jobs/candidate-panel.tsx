@@ -30,6 +30,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
@@ -83,10 +84,6 @@ export function CandidatePanel({
   onInterviewScheduled,
   onDelete,
 }: CandidatePanelProps) {
-  // #region agent log
-  fetch('http://127.0.0.1:7243/ingest/7c4bf3a4-0f60-40ce-82a9-6233b2ea9862',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'candidate-panel.tsx:86',message:'CandidatePanel render entry',data:{open,hasCandidate:!!candidate,candidateName:candidate?.name,candidateId:candidate?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A,B'})}).catch(()=>{});
-  // #endregion
-  
   // All hooks must be called before any early return (Rules of Hooks)
   const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -182,10 +179,10 @@ export function CandidatePanel({
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-4">
               <Avatar className="h-14 w-14">
-                {(candidate.avatar_url || candidate.avatar) ? (
+                {(displayCandidate.avatar_url || displayCandidate.avatar) ? (
                   <AvatarImage 
-                    src={candidate.avatar_url || candidate.avatar} 
-                    alt={candidate.name}
+                    src={displayCandidate.avatar_url || displayCandidate.avatar} 
+                    alt={displayCandidate.name}
                     className="object-cover"
                   />
                 ) : null}
@@ -195,22 +192,25 @@ export function CandidatePanel({
               </Avatar>
               <div>
                 <DialogTitle className="text-xl font-semibold text-foreground">
-                  {candidate.name}
+                  {displayCandidate.name}
                 </DialogTitle>
+                <DialogDescription className="sr-only">
+                  Candidate profile and details for {displayCandidate.name}
+                </DialogDescription>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {candidate.experience} experience
+                  {displayCandidate.experience} experience
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <AIScoreBadge
-                score={candidate.aiScore}
+                score={displayCandidate.aiScore}
                 size="lg"
                 showIcon
                 explanation="AI match score based on skills, experience, and job requirements analysis."
               />
               <Select
-                value={candidate.status}
+                value={displayCandidate.status}
                 onValueChange={(value) =>
                   onStatusChange(value as Candidate["status"])
                 }
@@ -335,7 +335,7 @@ export function CandidatePanel({
                 Match Breakdown
               </h3>
               <div className="space-y-2">
-                {candidate.strengths?.map((strength, index) => (
+                {displayCandidate.strengths?.map((strength, index) => (
                   <div
                     key={index}
                     className="flex items-start gap-2 text-sm"
@@ -344,7 +344,7 @@ export function CandidatePanel({
                     <span className="text-foreground">{strength}</span>
                   </div>
                 ))}
-                {candidate.concerns?.map((concern, index) => (
+                {displayCandidate.concerns?.map((concern, index) => (
                   <div
                     key={index}
                     className="flex items-start gap-2 text-sm"
@@ -357,13 +357,13 @@ export function CandidatePanel({
             </section>
 
             {/* Why This Candidate */}
-            {candidate.summary && (
+            {displayCandidate.summary && (
               <section>
                 <h3 className="text-sm font-semibold text-foreground mb-3">
                   Why This Candidate
                 </h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  {candidate.summary}
+                  {displayCandidate.summary}
                 </p>
               </section>
             )}
@@ -374,7 +374,7 @@ export function CandidatePanel({
                 Skills
               </h3>
               <div className="flex flex-wrap gap-2">
-                {candidate.skills.map((skill) => (
+                {displayCandidate.skills.map((skill) => (
                   <span
                     key={skill}
                     className="text-sm px-2.5 py-1 rounded-full bg-primary/10 text-primary"
@@ -391,9 +391,9 @@ export function CandidatePanel({
                 Links
               </h3>
               <div className="flex flex-wrap gap-2">
-                {candidate.linkedIn && (
+                {displayCandidate.linkedIn && (
                   <a
-                    href={candidate.linkedIn}
+                    href={displayCandidate.linkedIn}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border border-border hover:bg-muted transition-colors"
@@ -402,9 +402,9 @@ export function CandidatePanel({
                     LinkedIn
                   </a>
                 )}
-                {candidate.github && (
+                {displayCandidate.github && (
                   <a
-                    href={candidate.github}
+                    href={displayCandidate.github}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border border-border hover:bg-muted transition-colors"
@@ -413,9 +413,9 @@ export function CandidatePanel({
                     GitHub
                   </a>
                 )}
-                {candidate.portfolio && (
+                {displayCandidate.portfolio && (
                   <a
-                    href={candidate.portfolio}
+                    href={displayCandidate.portfolio}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border border-border hover:bg-muted transition-colors"
@@ -455,7 +455,7 @@ export function CandidatePanel({
                 <div className="pb-4">
                   <p className="text-sm font-medium text-foreground">Applied</p>
                   <p className="text-xs text-muted-foreground">
-                    {candidate.appliedAt}
+                    {displayCandidate.appliedAt}
                   </p>
                 </div>
               </div>
@@ -469,7 +469,7 @@ export function CandidatePanel({
                     AI Screening Complete
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    Scored {candidate.aiScore}% match
+                    Scored {displayCandidate.aiScore}% match
                   </p>
                 </div>
               </div>
@@ -492,14 +492,14 @@ export function CandidatePanel({
                   </div>
                 </div>
               )}
-              {candidate.status !== "applied" && (
+              {displayCandidate.status !== "applied" && (
                 <div className="flex gap-3">
                   <div className="flex flex-col items-center">
                     <div className="h-2 w-2 rounded-full bg-primary" />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-foreground">
-                      Moved to {candidate.status}
+                      Moved to {displayCandidate.status}
                     </p>
                     <p className="text-xs text-muted-foreground">By recruiter</p>
                   </div>
@@ -560,9 +560,9 @@ export function CandidatePanel({
         <ScheduleDialog
           open={scheduleDialogOpen}
           onOpenChange={setScheduleDialogOpen}
-          candidateId={candidate.id}
-          candidateName={candidate.name}
-          candidateEmail={candidate.email || ""}
+          candidateId={displayCandidate.id}
+          candidateName={displayCandidate.name}
+          candidateEmail={displayCandidate.email || ""}
           jobId={jobId}
           jobTitle={jobTitle}
           onScheduled={handleInterviewScheduled}
@@ -575,7 +575,7 @@ export function CandidatePanel({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Candidate</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <span className="font-medium text-foreground">{candidate.name}</span>? 
+              Are you sure you want to delete <span className="font-medium text-foreground">{displayCandidate.name}</span>? 
               This action cannot be undone and will permanently remove the candidate from this job pipeline.
             </AlertDialogDescription>
           </AlertDialogHeader>

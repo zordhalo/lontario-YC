@@ -8,7 +8,7 @@ export function CTA() {
   return (
     <section className="py-24">
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-accent/20 via-card to-card border border-border p-8 sm:p-12 lg:p-16">
+        <div className="relative overflow-hidden rounded-3xl bg-linear-to-br from-accent/20 via-card to-card border border-border p-8 sm:p-12 lg:p-16">
           {/* Background decoration */}
           <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-accent/10 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2" />
           

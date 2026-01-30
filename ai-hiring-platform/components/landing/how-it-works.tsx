@@ -79,7 +79,7 @@ export function HowItWorks() {
               </p>
               <ul className="space-y-3">
                 <li className="flex items-start gap-3">
-                  <span className="h-6 w-6 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="h-6 w-6 rounded-full bg-accent/20 flex items-center justify-center shrink-0 mt-0.5">
                     <span className="text-accent text-xs">✓</span>
                   </span>
                   <span className="text-sm text-muted-foreground">
@@ -87,7 +87,7 @@ export function HowItWorks() {
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="h-6 w-6 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="h-6 w-6 rounded-full bg-accent/20 flex items-center justify-center shrink-0 mt-0.5">
                     <span className="text-accent text-xs">✓</span>
                   </span>
                   <span className="text-sm text-muted-foreground">
@@ -95,7 +95,7 @@ export function HowItWorks() {
                   </span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="h-6 w-6 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="h-6 w-6 rounded-full bg-accent/20 flex items-center justify-center shrink-0 mt-0.5">
                     <span className="text-accent text-xs">✓</span>
                   </span>
                   <span className="text-sm text-muted-foreground">

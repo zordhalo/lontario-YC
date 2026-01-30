@@ -45,7 +45,7 @@ export function Hero() {
             {words[currentWord]}
           </span>
           {" "}roles faster with{" "}
-          <span className="bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text">
+          <span className="bg-linear-to-r from-foreground to-muted-foreground bg-clip-text">
             AI-empowered
           </span>
           {" "}recruiters
@@ -63,7 +63,7 @@ export function Hero() {
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </Link>
-          <Button variant="outline" size="lg" className="border-border hover:bg-secondary px-8 h-12 text-base bg-transparent">
+          <Button variant="outline" size="lg" className="px-8 h-12 text-base">
             View source code
           </Button>
         </div>

@@ -85,7 +85,7 @@ export function Testimonials() {
         {[...testimonials, ...testimonials].map((testimonial, index) => (
           <div
             key={`${testimonial.name}-${index}`}
-            className="flex-shrink-0 w-[400px] p-6 rounded-2xl bg-card border border-border"
+            className="shrink-0 w-[400px] p-6 rounded-2xl bg-card border border-border"
           >
             <div className="flex items-start gap-4">
               <Image
@@ -93,7 +93,7 @@ export function Testimonials() {
                 alt={testimonial.name}
                 width={48}
                 height={48}
-                className="h-12 w-12 rounded-full object-cover flex-shrink-0"
+                className="h-12 w-12 rounded-full object-cover shrink-0"
               />
               <div>
                 <p className="text-foreground leading-relaxed mb-4">&ldquo;{testimonial.quote}&rdquo;</p>

@@ -426,10 +426,7 @@ export default function JobDetailClient({ jobId }: JobDetailClientProps) {
               )}
             </div>
 
-            {/* Candidate Modal */}
-            {/* #region agent log */}
-            {(() => { fetch('http://127.0.0.1:7243/ingest/7c4bf3a4-0f60-40ce-82a9-6233b2ea9862',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'JobDetailClient.tsx:437',message:'Before CandidatePanel render',data:{selectedCandidateExists:!!selectedCandidate,selectedCandidateName:selectedCandidate?.name},timestamp:Date.now(),sessionId:'debug-session',hypothesisId:'A,C'})}).catch(()=>{}); return null; })()}
-            {/* #endregion */}
+            {/* Candidate Panel */}
             <CandidatePanel
               candidate={selectedCandidate ? {
                 ...selectedCandidate,

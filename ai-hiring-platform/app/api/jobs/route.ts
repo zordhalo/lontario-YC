@@ -24,7 +24,10 @@ const createJobSchema = z.object({
 
 const listJobsSchema = z.object({
   status: z.enum(["draft", "active", "paused", "closed"]).optional(),
-  include_archived: z.coerce.boolean().optional().default(false),
+  include_archived: z
+    .string()
+    .optional()
+    .transform((val) => val === "true"),
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(20),
   sort: z.enum(["created_at", "updated_at", "title"]).default("created_at"),

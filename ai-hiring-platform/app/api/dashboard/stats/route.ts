@@ -33,21 +33,23 @@ export async function GET() {
     const twoWeeksAgo = new Date(today);
     twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
 
-    // 1. Active Jobs count
+    // 1. Active Jobs count (exclude archived jobs)
     const { count: activeJobsCount, error: activeJobsError } = await supabase
       .from("jobs")
       .select("*", { count: "exact", head: true })
-      .eq("status", "active");
+      .eq("status", "active")
+      .eq("is_archived", false);
 
     if (activeJobsError) {
       console.error("Error fetching active jobs:", activeJobsError);
     }
 
-    // Get active jobs from last week for trend
+    // Get active jobs from last week for trend (exclude archived)
     const { count: activeJobsLastWeek } = await supabase
       .from("jobs")
       .select("*", { count: "exact", head: true })
       .eq("status", "active")
+      .eq("is_archived", false)
       .lt("created_at", weekAgo.toISOString());
 
     // 2. New Applications (last 7 days)
