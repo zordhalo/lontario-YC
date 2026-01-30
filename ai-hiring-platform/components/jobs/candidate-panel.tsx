@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect, useRef } from "react"
 import {
   AlertCircle,
   Calendar,
@@ -48,6 +48,7 @@ import { AIScoreBadge } from "@/components/ai-score-badge"
 import { ScheduleDialog } from "@/components/interview"
 import { useToast } from "@/hooks/use-toast"
 import { useDeleteCandidate, useCandidate } from "@/hooks/use-candidates"
+import { useMarkInterviewReviewed } from "@/hooks/use-dashboard"
 import type { Candidate } from "@/lib/mock-data"
 import type { AIInterview } from "@/types"
 
@@ -136,6 +137,39 @@ export function CandidatePanel({
   
   // Check if interview is completed
   const hasCompletedInterview = interview?.status === 'completed'
+  
+  // Hook for marking interview as reviewed (invalidates dashboard alerts)
+  const markReviewed = useMarkInterviewReviewed()
+  
+  // Track if we've already marked this interview as reviewed
+  const reviewedInterviewRef = useRef<string | null>(null)
+  
+  // Auto-mark completed interviews as reviewed when panel is opened
+  useEffect(() => {
+    // Only mark as reviewed if:
+    // 1. Panel is open
+    // 2. Interview is completed
+    // 3. Interview hasn't been reviewed yet (reviewed_at is null)
+    // 4. We haven't already sent the review request for this interview
+    // 5. The mutation is not currently in progress
+    if (
+      open && 
+      hasCompletedInterview && 
+      interview?.id &&
+      !interview.reviewed_at &&
+      reviewedInterviewRef.current !== interview.id &&
+      !markReviewed.isPending
+    ) {
+      // Mark as reviewed (this also invalidates dashboard alerts)
+      reviewedInterviewRef.current = interview.id
+      markReviewed.mutate(interview.id, {
+        onError: () => {
+          // Reset ref so we can try again if panel is reopened
+          reviewedInterviewRef.current = null
+        }
+      })
+    }
+  }, [open, hasCompletedInterview, interview?.id, interview?.reviewed_at, markReviewed])
 
   // Early return if no valid candidate - prevents errors when dialog is closed
   if (!open || !candidate?.name) {

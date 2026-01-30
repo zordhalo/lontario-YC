@@ -306,6 +306,10 @@ export interface AIInterview {
   candidate_timezone: string | null;
   /** Custom message from recruiter included in invitation */
   custom_message: string | null;
+  /** When the interview summary was reviewed by a recruiter */
+  reviewed_at: string | null;
+  /** UUID of the user who reviewed the interview */
+  reviewed_by: string | null;
 }
 
 /**

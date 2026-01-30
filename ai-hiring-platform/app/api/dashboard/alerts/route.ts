@@ -80,11 +80,12 @@ export async function GET() {
       });
     }
 
-    // 3. Completed AI interviews ready for review
+    // 3. Completed AI interviews ready for review (not yet reviewed)
     const { count: completedInterviewsCount, error: completedError } = await supabase
       .from("ai_interviews")
       .select("*", { count: "exact", head: true })
-      .eq("status", "completed");
+      .eq("status", "completed")
+      .is("reviewed_at", null);
 
     if (completedError) {
       console.error("Error fetching completed interviews:", completedError);
