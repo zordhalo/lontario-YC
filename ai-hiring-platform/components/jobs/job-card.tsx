@@ -50,29 +50,32 @@ const statusColors = {
 }
 
 // Calculate pipeline progress from real stage data
-// Progress = candidates who have moved past "applied" stage / total candidates
+// Progress is calculated as a weighted average based on how far through the pipeline each applicant is
 function calculatePipelineProgress(stageCounts: StageCounts | undefined, totalApplicants: number): number {
   if (!stageCounts || totalApplicants === 0) {
     return 0
   }
 
-  // Stages that indicate progress (past the initial "applied" stage)
-  const progressStages = [
-    "screening",
-    "ai_interview", 
-    "phone_screen",
-    "technical",
-    "onsite",
-    "offer",
-    "hired",
-  ] as const
+  // Define progress percentage for each stage (0-100%)
+  const stageProgress: Record<string, number> = {
+    applied: 0,
+    screening: 15,
+    ai_interview: 30,
+    phone_screen: 45,
+    technical: 60,
+    onsite: 75,
+    offer: 90,
+    hired: 100,
+  }
 
-  // Count candidates who have progressed past "applied"
-  const progressedCount = progressStages.reduce((sum, stage) => {
-    return sum + (stageCounts[stage] || 0)
-  }, 0)
+  // Calculate weighted average: sum(count * progress) / total
+  let totalProgress = 0
+  for (const [stage, count] of Object.entries(stageCounts)) {
+    const progress = stageProgress[stage] || 0
+    totalProgress += (count || 0) * progress
+  }
 
-  return Math.round((progressedCount / totalApplicants) * 100)
+  return Math.round(totalProgress / totalApplicants)
 }
 
 // Get counts for display in the progress bar breakdown

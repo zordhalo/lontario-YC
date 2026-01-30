@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import {
   ArrowRight,
   Calendar,
@@ -130,10 +131,12 @@ export function ActivityFeed() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <CardTitle className="text-lg">Recent Activity</CardTitle>
-        <Button variant="ghost" size="sm" className="text-primary">
-          View all
-          <ArrowRight className="ml-1 h-4 w-4" />
-        </Button>
+        <Link href="/jobs">
+          <Button variant="ghost" size="sm" className="text-primary">
+            View all
+            <ArrowRight className="ml-1 h-4 w-4" />
+          </Button>
+        </Link>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
