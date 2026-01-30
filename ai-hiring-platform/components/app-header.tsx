@@ -45,10 +45,10 @@ export function AppHeader() {
                   key={item.name}
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                    "flex items-center gap-2 px-3 py-2 text-sm rounded-md transition-colors",
                     isActive
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                      ? "bg-primary/15 text-primary font-semibold"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted font-medium"
                   )}
                 >
                   <item.icon className="h-4 w-4" />

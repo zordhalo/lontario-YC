@@ -27,6 +27,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyContent,
+} from "@/components/ui/empty";
 import type { ScheduledInterviewWithDetails, InterviewStatus } from "@/types";
 
 interface UpcomingInterviewsSectionProps {
@@ -123,13 +131,22 @@ export function UpcomingInterviewsSection({
             <p>{error}</p>
           </div>
         ) : interviews.length === 0 ? (
-          <div className="text-center py-8">
-            <Calendar className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
-            <p className="text-muted-foreground">No upcoming interviews</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Schedule interviews from the candidate panel
-            </p>
-          </div>
+          <Empty className="border-0 py-6">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Calendar className="h-6 w-6" />
+              </EmptyMedia>
+              <EmptyTitle>No Upcoming Interviews</EmptyTitle>
+              <EmptyDescription>
+                Schedule AI-powered interviews from the candidate panel
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button asChild size="sm">
+                <a href="/jobs">View Candidates</a>
+              </Button>
+            </EmptyContent>
+          </Empty>
         ) : (
           <div className="space-y-3">
             {interviews.map((interview) => {

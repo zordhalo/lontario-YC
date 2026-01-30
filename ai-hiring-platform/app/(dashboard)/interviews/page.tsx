@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { format, isToday, isTomorrow, Calendar, Clock, ExternalLink, MoreHorizontal, User, Search } from "lucide-react";
+import { format, isToday, isTomorrow } from "date-fns";
+import { Calendar, Clock, ExternalLink, MoreHorizontal, User, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

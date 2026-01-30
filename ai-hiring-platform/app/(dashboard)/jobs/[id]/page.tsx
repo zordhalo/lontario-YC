@@ -3,11 +3,19 @@
 import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { ArrowLeft, Settings, Loader2 } from "lucide-react"
+import { Settings, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 import { KanbanBoard } from "@/components/jobs/kanban-board"
 import { JobDetails } from "@/components/jobs/job-details"
 import { CandidatePanel } from "@/components/jobs/candidate-panel"
@@ -144,14 +152,25 @@ export default function JobDetailPage() {
       {/* Header */}
       <header className="border-b border-border bg-card px-4 py-4">
         <div className="container max-w-7xl mx-auto">
+          {/* Breadcrumb */}
+          <Breadcrumb className="mb-3">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/">Dashboard</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink href="/jobs">Jobs</BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>{job.title}</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
+
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Link href="/jobs">
-                <Button variant="ghost" size="icon">
-                  <ArrowLeft className="h-4 w-4" />
-                  <span className="sr-only">Back to Jobs</span>
-                </Button>
-              </Link>
               <div>
                 <div className="flex items-center gap-3">
                   <h1 className="text-xl font-bold text-foreground">

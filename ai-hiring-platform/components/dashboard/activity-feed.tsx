@@ -14,6 +14,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyContent,
+} from "@/components/ui/empty"
 import { useActivities } from "@/hooks/use-activities"
 import { cn } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
@@ -97,7 +105,22 @@ export function ActivityFeed() {
           <CardTitle className="text-lg">Recent Activity</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">No recent activity</p>
+          <Empty className="border-0 py-6">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <FileCheck className="h-6 w-6" />
+              </EmptyMedia>
+              <EmptyTitle>No Recent Activity</EmptyTitle>
+              <EmptyDescription>
+                Activity will appear here as candidates apply and progress through your pipeline
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button asChild size="sm">
+                <a href="/jobs/new">Create Job</a>
+              </Button>
+            </EmptyContent>
+          </Empty>
         </CardContent>
       </Card>
     )

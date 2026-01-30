@@ -73,7 +73,7 @@ export class InterviewErrorBoundary extends Component<Props, State> {
             {this.state.error && (
               <div className="rounded-lg border bg-muted p-3 text-sm">
                 <p className="font-medium text-foreground">Error details:</p>
-                <p className="mt-1 text-muted-foreground break-words">
+                <p className="mt-1 text-muted-foreground wrap-break-word">
                   {this.state.error.message}
                 </p>
               </div>

@@ -2,11 +2,19 @@
 
 import { useMemo } from "react"
 import Link from "next/link"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, Briefcase } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyContent,
+} from "@/components/ui/empty"
 import { useJobs } from "@/hooks/use-jobs"
 import { normalizeJob } from "@/lib/mock-data"
 
@@ -57,15 +65,24 @@ export function PipelineSection() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between pb-3">
           <CardTitle className="text-lg">Active Jobs Pipeline</CardTitle>
-          <Link href="/jobs/new">
-            <Button variant="ghost" size="sm" className="text-primary">
-              Create job
-              <ArrowRight className="ml-1 h-4 w-4" />
-            </Button>
-          </Link>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">No active jobs yet</p>
+          <Empty className="border-0 py-6">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Briefcase className="h-6 w-6" />
+              </EmptyMedia>
+              <EmptyTitle>No Active Jobs</EmptyTitle>
+              <EmptyDescription>
+                Create your first job posting to start receiving applications
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button asChild size="sm">
+                <Link href="/jobs/new">Create Job</Link>
+              </Button>
+            </EmptyContent>
+          </Empty>
         </CardContent>
       </Card>
     )

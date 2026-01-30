@@ -65,7 +65,7 @@ export function InterviewProgress({
                     isCompleted
                       ? "border-primary bg-primary text-primary-foreground"
                       : isCurrent
-                        ? "border-primary bg-background text-primary"
+                        ? "border-primary bg-background text-primary ring-4 ring-primary/20"
                         : "border-muted bg-background text-muted-foreground",
                     isClickable &&
                       "group-hover:ring-4 group-hover:ring-primary/20"
