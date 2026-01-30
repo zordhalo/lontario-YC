@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useState } from "react";
 import { format } from "date-fns";
-import { CalendarIcon, Clock, Loader2 } from "lucide-react";
+import { CalendarIcon, Clock, Loader2, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -39,6 +39,7 @@ interface ScheduleDialogProps {
   candidateEmail: string;
   jobId: string;
   jobTitle: string;
+  questionGenerationStatus?: "none" | "pending" | "generating" | "ready" | "failed";
   onScheduled?: (interview: {
     id: string;
     scheduled_at: string;
@@ -79,8 +80,10 @@ export function ScheduleDialog({
   candidateEmail,
   jobId,
   jobTitle,
+  questionGenerationStatus = "none",
   onScheduled,
 }: ScheduleDialogProps) {
+  const hasPreGeneratedQuestions = questionGenerationStatus === "ready";
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [time, setTime] = useState<string>("09:00");
   const [duration, setDuration] = useState<string>("30");
@@ -176,10 +179,23 @@ export function ScheduleDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Schedule AI Interview</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            Schedule AI Interview
+            {hasPreGeneratedQuestions && (
+              <span className="inline-flex items-center gap-1 text-xs font-normal px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 dark:text-green-400">
+                <Zap className="h-3 w-3" />
+                Instant
+              </span>
+            )}
+          </DialogTitle>
           <DialogDescription>
             Schedule an AI-powered interview for {candidateName} for the{" "}
             {jobTitle} position.
+            {hasPreGeneratedQuestions && (
+              <span className="block mt-1 text-green-600 dark:text-green-400">
+                Questions are pre-generated — scheduling will be instant!
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
 

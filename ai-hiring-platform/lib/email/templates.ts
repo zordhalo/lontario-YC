@@ -1,20 +1,58 @@
+/**
+ * @fileoverview Email templates for interview notifications
+ * 
+ * This module contains all email templates used by the platform:
+ * - Interview scheduled
+ * - Interview reminders (24h and 1h)
+ * - Interview completed
+ * - Interview rescheduled
+ * - Interview cancelled
+ * 
+ * Each template returns HTML and plain text versions for email clients.
+ * 
+ * @module lib/email/templates
+ */
+
 import { format } from "date-fns";
 
+// ============================================================
+// TYPE DEFINITIONS
+// ============================================================
+
+/**
+ * Data required to populate email templates
+ * All templates receive this common data structure
+ */
 export interface EmailTemplateData {
+  /** Candidate's display name */
   candidateName: string;
+  /** Job title they're interviewing for */
   jobTitle: string;
+  /** Company name (defaults to "Lontario") */
   companyName?: string;
+  /** Full URL to access the interview */
   interviewLink: string;
+  /** ISO 8601 datetime of scheduled interview */
   scheduledAt: string;
+  /** Expected interview duration in minutes */
   durationMinutes: number;
+  /** Custom message from recruiter */
   customMessage?: string;
-  oldScheduledAt?: string; // For reschedule emails
+  /** Previous scheduled time (for reschedule emails) */
+  oldScheduledAt?: string;
+  /** Reason for cancellation (for cancellation emails) */
   cancellationReason?: string;
 }
 
+/**
+ * Complete email template with subject and body
+ */
 interface EmailTemplate {
+  /** Email subject line */
   subject: string;
+  /** HTML version of email body */
   html: string;
+  /** Plain text version of email body */
   text: string;
 }
 

@@ -1,6 +1,38 @@
+/**
+ * @fileoverview Utility functions for the AI Hiring Platform
+ * 
+ * Contains helper functions for:
+ * - CSS class merging (Tailwind CSS)
+ * - Duration formatting
+ * - UI styling helpers (difficulty colors, category icons)
+ * 
+ * @module lib/utils
+ */
+
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
+/**
+ * Merges CSS class names with Tailwind CSS conflict resolution
+ * 
+ * Combines clsx for conditional classes with tailwind-merge to handle
+ * conflicting Tailwind utility classes (e.g., `p-4` and `p-2`).
+ * 
+ * @param inputs - Class values to merge (strings, arrays, objects)
+ * @returns Merged class string with conflicts resolved
+ * 
+ * @example
+ * // Basic usage
+ * cn('p-4', 'bg-blue-500') // 'p-4 bg-blue-500'
+ * 
+ * @example
+ * // With conditional classes
+ * cn('btn', isActive && 'btn-active', { 'btn-disabled': disabled })
+ * 
+ * @example
+ * // Tailwind conflict resolution
+ * cn('p-4', 'p-2') // 'p-2' (later class wins)
+ */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }

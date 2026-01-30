@@ -1,3 +1,19 @@
+/**
+ * @fileoverview React Query hooks for AI operations
+ * 
+ * This module provides client-side hooks for all AI-powered features:
+ * - Question generation
+ * - Candidate scoring
+ * - Resume parsing
+ * - Answer evaluation
+ * - Follow-up question generation
+ * - Profile scraping
+ * 
+ * All hooks use React Query mutations for proper loading/error states.
+ * 
+ * @module hooks/use-ai
+ */
+
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
@@ -14,7 +30,14 @@ import type {
   ScoringCriteria,
 } from "@/types";
 
-// API functions
+// ============================================================
+// API FUNCTIONS - Internal fetch wrappers
+// ============================================================
+
+/**
+ * Calls the question generation API
+ * @internal
+ */
 async function generateQuestions(
   job: JobDescription,
   candidate: CandidateProfile,
@@ -137,7 +160,19 @@ async function scrapeProfile(
   return response.json();
 }
 
-// Hooks
+// ============================================================
+// REACT QUERY HOOKS - Client-side AI operations
+// ============================================================
+
+/**
+ * Hook for generating personalized interview questions
+ * 
+ * @returns Mutation object with mutate function and state
+ * 
+ * @example
+ * const { mutate, isPending, data } = useGenerateQuestions();
+ * mutate({ job, candidate, questionCount: 8 });
+ */
 export function useGenerateQuestions() {
   return useMutation({
     mutationFn: ({
@@ -152,6 +187,15 @@ export function useGenerateQuestions() {
   });
 }
 
+/**
+ * Hook for scoring a candidate against job requirements
+ * 
+ * @returns Mutation object with mutate function and state
+ * 
+ * @example
+ * const { mutate, isPending } = useScoreCandidate();
+ * mutate({ candidate: candidateData, job: jobData });
+ */
 export function useScoreCandidate() {
   return useMutation({
     mutationFn: ({
@@ -176,12 +220,32 @@ export function useScoreCandidate() {
   });
 }
 
+/**
+ * Hook for parsing resume text into structured data
+ * 
+ * @returns Mutation object with mutate function and state
+ * 
+ * @example
+ * const { mutate, data } = useParseResume();
+ * mutate(resumeText);
+ * // data contains ParsedResume with skills, experience, etc.
+ */
 export function useParseResume() {
   return useMutation({
     mutationFn: (resumeText: string) => parseResume(resumeText),
   });
 }
 
+/**
+ * Hook for evaluating a candidate's interview answer
+ * 
+ * @returns Mutation object with mutate function and state
+ * 
+ * @example
+ * const { mutate, data } = useEvaluateAnswer();
+ * mutate({ question, answer, jobContext, candidateBackground });
+ * // data.score is 0-10, data.feedback has constructive feedback
+ */
 export function useEvaluateAnswer() {
   return useMutation({
     mutationFn: ({
@@ -202,6 +266,16 @@ export function useEvaluateAnswer() {
   });
 }
 
+/**
+ * Hook for generating a follow-up question based on candidate's answer
+ * 
+ * @returns Mutation object with mutate function and state
+ * 
+ * @example
+ * const { mutate, data } = useGenerateFollowUp();
+ * mutate({ originalQuestion, candidateAnswer, jobDescription });
+ * // data.followUp contains the follow-up question
+ */
 export function useGenerateFollowUp() {
   return useMutation({
     mutationFn: ({
@@ -216,6 +290,16 @@ export function useGenerateFollowUp() {
   });
 }
 
+/**
+ * Hook for scraping a GitHub or LinkedIn profile
+ * 
+ * @returns Mutation object with mutate function and state
+ * 
+ * @example
+ * const { mutate, data } = useScrapeProfile();
+ * mutate({ url: "https://github.com/username", source: "github" });
+ * // data.profile contains CandidateProfile
+ */
 export function useScrapeProfile() {
   return useMutation({
     mutationFn: ({

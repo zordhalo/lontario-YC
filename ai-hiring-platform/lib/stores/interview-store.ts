@@ -1,3 +1,17 @@
+/**
+ * @fileoverview Zustand store for interview generation wizard
+ * 
+ * This store manages the state for the 3-step interview generation flow:
+ * 1. Job Details - Enter job requirements and skills
+ * 2. Candidate Profile - Fetch from GitHub/LinkedIn or enter manually
+ * 3. Questions - View generated personalized interview questions
+ * 
+ * The store handles navigation between steps, data persistence,
+ * and the async question generation API call.
+ * 
+ * @module lib/stores/interview-store
+ */
+
 "use client"
 
 import { create } from "zustand"
@@ -8,29 +22,52 @@ import type {
   AppStep,
 } from "@/types"
 
+// ============================================================
+// TYPE DEFINITIONS
+// ============================================================
+
+/**
+ * Interview generation wizard state and actions
+ */
 interface InterviewState {
-  // State
+  // ==================== State ====================
+  /** Current wizard step */
   currentStep: AppStep
+  /** Job description from step 1 */
   job: JobDescription | null
+  /** Candidate profile from step 2 */
   candidate: CandidateProfile | null
+  /** Generated questions from step 3 */
   questions: QuestionSet | null
+  /** Whether question generation is in progress */
   isLoading: boolean
+  /** Error message from failed operations */
   error: string | null
 
-  // Synchronous actions
+  // ==================== Synchronous Actions ====================
+  /** Navigate to a specific step */
   setCurrentStep: (step: AppStep) => void
+  /** Set job and advance to profile step */
   setJob: (job: JobDescription) => void
+  /** Set candidate profile */
   setCandidate: (candidate: CandidateProfile) => void
+  /** Set questions and advance to questions step */
   setQuestions: (questions: QuestionSet) => void
+  /** Set loading state */
   setLoading: (loading: boolean) => void
+  /** Set error state */
   setError: (error: string | null) => void
+  /** Reset all state to initial values */
   reset: () => void
+  /** Navigate back one step */
   goBack: () => void
 
-  // Async action for question generation
+  // ==================== Async Actions ====================
+  /** Generate questions using the AI API */
   generateQuestions: () => Promise<void>
 }
 
+/** Initial/reset state values */
 const initialState = {
   currentStep: "job" as AppStep,
   job: null,
@@ -41,8 +78,17 @@ const initialState = {
 }
 
 /**
- * Zustand store for managing interview generation state
- * Handles the 3-step wizard: Job Details → Candidate Profile → Questions
+ * Zustand store for interview generation wizard
+ * 
+ * @example
+ * // In a component
+ * const { job, setJob, generateQuestions, isLoading } = useInterviewStore();
+ * 
+ * // Set job and auto-advance to profile step
+ * setJob({ title: "Senior Engineer", ... });
+ * 
+ * // Generate questions (requires job and candidate)
+ * await generateQuestions();
  */
 export const useInterviewStore = create<InterviewState>((set, get) => ({
   // Initial state

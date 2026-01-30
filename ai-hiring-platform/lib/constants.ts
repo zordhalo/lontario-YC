@@ -1,6 +1,27 @@
-// Application constants
+/**
+ * @fileoverview Application constants and configuration values
+ * 
+ * This module exports all static configuration values used throughout
+ * the application, including:
+ * - Pipeline stage definitions
+ * - Job status and level options
+ * - AI score thresholds
+ * - Question category configurations
+ * - API endpoint paths
+ * 
+ * All values are exported as const for type safety.
+ * 
+ * @module lib/constants
+ */
 
-// Pipeline stages configuration
+// ============================================================
+// PIPELINE STAGES - Hiring workflow configuration
+// ============================================================
+
+/**
+ * Full pipeline stage configuration with descriptions
+ * Used for detailed pipeline views and configuration screens
+ */
 export const PIPELINE_STAGES = [
   { id: "applied", label: "Applied", color: "bg-gray-500", description: "New applications" },
   { id: "screening", label: "Screening", color: "bg-blue-500", description: "AI screening in progress" },
@@ -12,7 +33,10 @@ export const PIPELINE_STAGES = [
   { id: "hired", label: "Hired", color: "bg-green-500", description: "Accepted offer" },
 ] as const;
 
-// Simplified pipeline for Kanban board (matches database stages)
+/**
+ * Simplified pipeline stages for Kanban board display
+ * Matches database CandidateStage enum values
+ */
 export const KANBAN_STAGES = [
   { id: "applied", label: "Applied", color: "bg-gray-500" },
   { id: "screening", label: "Screening", color: "bg-blue-500" },
@@ -24,7 +48,14 @@ export const KANBAN_STAGES = [
   { id: "hired", label: "Hired", color: "bg-green-500" },
 ] as const;
 
-// Job status configuration
+// ============================================================
+// JOB CONFIGURATION - Status, levels, and types
+// ============================================================
+
+/**
+ * Job status display configuration
+ * Maps status values to labels and Tailwind CSS classes
+ */
 export const JOB_STATUS = {
   draft: { label: "Draft", color: "bg-warning/10 text-warning border-warning/30" },
   active: { label: "Active", color: "bg-success/10 text-success border-success/30" },
@@ -32,7 +63,9 @@ export const JOB_STATUS = {
   closed: { label: "Closed", color: "bg-muted text-muted-foreground border-border" },
 } as const;
 
-// Job levels
+/**
+ * Job seniority levels for dropdown selects
+ */
 export const JOB_LEVELS = [
   { value: "junior", label: "Junior" },
   { value: "mid", label: "Mid-level" },
@@ -41,7 +74,9 @@ export const JOB_LEVELS = [
   { value: "principal", label: "Principal" },
 ] as const;
 
-// Employment types
+/**
+ * Employment type options for dropdown selects
+ */
 export const EMPLOYMENT_TYPES = [
   { value: "full-time", label: "Full-time" },
   { value: "part-time", label: "Part-time" },
@@ -49,21 +84,41 @@ export const EMPLOYMENT_TYPES = [
   { value: "internship", label: "Internship" },
 ] as const;
 
-// Location types
+/**
+ * Work location arrangement options
+ */
 export const LOCATION_TYPES = [
   { value: "remote", label: "Remote" },
   { value: "onsite", label: "On-site" },
   { value: "hybrid", label: "Hybrid" },
 ] as const;
 
-// AI Score thresholds
+// ============================================================
+// AI CONFIGURATION - Scoring and evaluation
+// ============================================================
+
+/**
+ * AI score threshold values for categorizing candidates
+ * Used to color-code and filter candidates by match quality
+ * 
+ * @example
+ * const quality = score >= AI_SCORE_THRESHOLDS.excellent ? 'excellent' :
+ *                 score >= AI_SCORE_THRESHOLDS.good ? 'good' :
+ *                 score >= AI_SCORE_THRESHOLDS.moderate ? 'moderate' : 'low';
+ */
 export const AI_SCORE_THRESHOLDS = {
+  /** Score >= 90: Exceptional match */
   excellent: 90,
+  /** Score >= 70: Strong match */
   good: 70,
+  /** Score >= 50: Moderate match */
   moderate: 50,
 } as const;
 
-// Question categories
+/**
+ * Question category configuration with display colors
+ * Used in question lists and interview views
+ */
 export const QUESTION_CATEGORIES = [
   { value: "technical", label: "Technical", color: "bg-blue-100 text-blue-800" },
   { value: "behavioral", label: "Behavioral", color: "bg-green-100 text-green-800" },
@@ -72,7 +127,10 @@ export const QUESTION_CATEGORIES = [
   { value: "culture-fit", label: "Culture Fit", color: "bg-pink-100 text-pink-800" },
 ] as const;
 
-// Recommendation labels
+/**
+ * AI recommendation display configuration
+ * Maps recommendation values to labels, colors, and icons
+ */
 export const RECOMMENDATIONS = {
   strong_yes: { label: "Strong Yes", color: "bg-green-100 text-green-800", icon: "👍👍" },
   yes: { label: "Yes", color: "bg-green-50 text-green-700", icon: "👍" },
@@ -81,7 +139,18 @@ export const RECOMMENDATIONS = {
   strong_no: { label: "Strong No", color: "bg-red-100 text-red-800", icon: "👎👎" },
 } as const;
 
-// API endpoints
+// ============================================================
+// API CONFIGURATION - Endpoint paths
+// ============================================================
+
+/**
+ * API endpoint path constants
+ * Centralized definition for all REST API routes
+ * 
+ * @example
+ * fetch(`${API_ENDPOINTS.candidates}/${candidateId}`)
+ * fetch(API_ENDPOINTS.ai.generateQuestions, { method: 'POST', ... })
+ */
 export const API_ENDPOINTS = {
   jobs: "/api/jobs",
   candidates: "/api/candidates",
@@ -96,5 +165,12 @@ export const API_ENDPOINTS = {
   },
 } as const;
 
-// Demo mode flag
+// ============================================================
+// ENVIRONMENT FLAGS
+// ============================================================
+
+/**
+ * Demo mode flag - true when Supabase is not configured
+ * Used to show mock data and disable database operations
+ */
 export const IS_DEMO_MODE = !process.env.NEXT_PUBLIC_SUPABASE_URL;

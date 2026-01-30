@@ -1,13 +1,40 @@
+/**
+ * @fileoverview React Query hooks for dashboard data
+ * 
+ * This module provides hooks for fetching dashboard statistics and alerts:
+ * - Active jobs count with trend
+ * - New applications with trend
+ * - AI matches today with trend
+ * - Hires this week with trend
+ * - High-priority alerts
+ * 
+ * Data auto-refreshes at configured intervals.
+ * 
+ * @module hooks/use-dashboard
+ */
+
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
 
-// Types
+// ============================================================
+// TYPE DEFINITIONS
+// ============================================================
+
+/**
+ * Statistic value with trend indicator
+ * Trend is percentage change from previous period
+ */
 export interface StatWithTrend {
+  /** Current value */
   value: number;
+  /** Percentage change (positive = up, negative = down) */
   trend: number;
 }
 
+/**
+ * Dashboard statistics overview
+ */
 export interface DashboardStats {
   active_jobs: StatWithTrend;
   new_applications: StatWithTrend;
@@ -15,19 +42,35 @@ export interface DashboardStats {
   hired_this_week: StatWithTrend;
 }
 
+/**
+ * Dashboard alert for action items
+ */
 export interface DashboardAlert {
   id: string;
+  /** Alert category */
   type: "high_score" | "pending_interview" | "review_ready";
+  /** Display title */
   title: string;
+  /** Link to relevant page */
   href: string;
+  /** Number of items */
   count: number;
 }
 
+/**
+ * Response from alerts API
+ */
 export interface DashboardAlertsResponse {
   alerts: DashboardAlert[];
 }
 
-// Query keys
+// ============================================================
+// QUERY KEYS
+// ============================================================
+
+/**
+ * Query key factory for dashboard queries
+ */
 export const dashboardKeys = {
   all: ["dashboard"] as const,
   stats: () => [...dashboardKeys.all, "stats"] as const,
@@ -53,7 +96,20 @@ async function fetchDashboardAlerts(): Promise<DashboardAlertsResponse> {
   return response.json();
 }
 
-// Hooks
+// ============================================================
+// REACT QUERY HOOKS
+// ============================================================
+
+/**
+ * Hook for fetching dashboard statistics
+ * Auto-refreshes every 2 minutes
+ * 
+ * @returns Query result with stats and trends
+ * 
+ * @example
+ * const { data } = useDashboardStats();
+ * // data.active_jobs.value, data.active_jobs.trend
+ */
 export function useDashboardStats() {
   return useQuery({
     queryKey: dashboardKeys.stats(),
@@ -63,6 +119,16 @@ export function useDashboardStats() {
   });
 }
 
+/**
+ * Hook for fetching dashboard alerts
+ * Auto-refreshes every minute for timely notifications
+ * 
+ * @returns Query result with alert items
+ * 
+ * @example
+ * const { data } = useDashboardAlerts();
+ * // data.alerts[0].type, data.alerts[0].title
+ */
 export function useDashboardAlerts() {
   return useQuery({
     queryKey: dashboardKeys.alerts(),

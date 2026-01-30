@@ -1,3 +1,19 @@
+/**
+ * @fileoverview Candidate scoring pipeline
+ * 
+ * This module orchestrates the AI scoring process for candidates:
+ * 1. Fetches profile data from GitHub/LinkedIn
+ * 2. Combines with resume/cover letter data
+ * 3. Calls AI scoring to evaluate job fit
+ * 4. Updates candidate record with results
+ * 5. Triggers background question pre-generation
+ * 
+ * The main entry point is `processAndScoreCandidate()` which runs
+ * the complete pipeline after a new candidate is created.
+ * 
+ * @module lib/ai/scoring
+ */
+
 import { createClient } from "@/lib/supabase/server";
 import {
   fetchGitHubProfile,
@@ -7,6 +23,14 @@ import {
 } from "@/lib/ai";
 import type { CandidateProfile, MatchScore, Job } from "@/types";
 
+// ============================================================
+// TYPE DEFINITIONS
+// ============================================================
+
+/**
+ * Candidate data required for scoring
+ * Minimal subset of Candidate entity
+ */
 interface CandidateForScoring {
   id: string;
   job_id: string;
@@ -18,16 +42,30 @@ interface CandidateForScoring {
   resume_text?: string | null;
 }
 
+/**
+ * Result of the scoring operation
+ * Contains all AI-generated insights to be stored on the candidate
+ */
 interface ScoringResult {
+  /** Whether scoring completed successfully */
   success: boolean;
+  /** Overall match score (0-100) */
   ai_score?: number;
+  /** Brief summary of candidate fit */
   ai_summary?: string;
+  /** Key strengths identified */
   ai_strengths?: string[];
+  /** Potential concerns or gaps */
   ai_concerns?: string[];
+  /** Detailed score breakdown by category */
   ai_score_breakdown?: MatchScore["breakdown"];
+  /** Skills extracted from profile/resume */
   extracted_skills?: string[];
+  /** GitHub avatar URL if available */
   avatar_url?: string;
+  /** Years of experience from GitHub/resume */
   years_of_experience?: number;
+  /** Error message if scoring failed */
   error?: string;
 }
 
@@ -253,5 +291,38 @@ export async function processAndScoreCandidate(
   // Update the candidate record with the results
   await updateCandidateWithScore(candidate.id, result);
 
+  // Trigger pre-generation of interview questions in the background
+  // This makes scheduling interviews instant later
+  triggerQuestionPregeneration(candidate.id).catch((error) => {
+    console.error("Background question pre-generation failed:", error);
+  });
+
   return result;
+}
+
+/**
+ * Triggers pre-generation of interview questions for a candidate
+ * This runs asynchronously after candidate scoring to prepare for fast interview scheduling
+ */
+async function triggerQuestionPregeneration(candidateId: string): Promise<void> {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  
+  try {
+    const response = await fetch(
+      `${baseUrl}/api/candidates/${candidateId}/pregenerate-questions`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error("Question pre-generation API error:", error);
+    }
+  } catch (error) {
+    console.error("Failed to trigger question pre-generation:", error);
+  }
 }

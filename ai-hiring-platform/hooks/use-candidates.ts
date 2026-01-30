@@ -1,3 +1,20 @@
+/**
+ * @fileoverview React Query hooks for candidate management
+ * 
+ * This module provides client-side hooks for all candidate operations:
+ * - List candidates with filtering and pagination
+ * - Get individual candidate details
+ * - Create, update, delete candidates
+ * - Move candidates between pipeline stages
+ * - Star/unstar candidates
+ * - Bulk operations
+ * - Polling for AI scoring completion
+ * 
+ * Uses React Query for caching, optimistic updates, and background refetching.
+ * 
+ * @module hooks/use-candidates
+ */
+
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -9,7 +26,21 @@ import type {
   MoveCandidateRequest,
 } from "@/types";
 
-// Query keys
+// ============================================================
+// QUERY KEYS - For cache management
+// ============================================================
+
+/**
+ * Query key factory for candidate queries
+ * Provides consistent keys for cache invalidation and deduplication
+ * 
+ * @example
+ * // Invalidate all candidate lists
+ * queryClient.invalidateQueries({ queryKey: candidateKeys.lists() });
+ * 
+ * // Get specific candidate from cache
+ * queryClient.getQueryData(candidateKeys.detail(candidateId));
+ */
 export const candidateKeys = {
   all: ["candidates"] as const,
   lists: () => [...candidateKeys.all, "list"] as const,
@@ -119,7 +150,20 @@ async function createCandidate(data: CreateCandidateData): Promise<Candidate> {
   return response.json();
 }
 
-// Hooks
+// ============================================================
+// REACT QUERY HOOKS
+// ============================================================
+
+/**
+ * Hook for fetching a paginated list of candidates with filters
+ * 
+ * @param filters - Query filters (job_id required, plus optional stage, score, search)
+ * @returns Query result with candidates, pagination, and aggregations
+ * 
+ * @example
+ * const { data, isLoading } = useCandidates({ job_id: "...", stage: "screening" });
+ * // data.candidates, data.pagination, data.aggregations.by_stage
+ */
 export function useCandidates(filters: ListCandidatesQuery) {
   return useQuery({
     queryKey: candidateKeys.list(filters),
@@ -129,6 +173,17 @@ export function useCandidates(filters: ListCandidatesQuery) {
   });
 }
 
+/**
+ * Hook for fetching a single candidate with related data
+ * Always refetches on mount to ensure latest scoring data
+ * 
+ * @param id - Candidate UUID
+ * @returns Query result with candidate, activities, comments, and interview
+ * 
+ * @example
+ * const { data: candidate, isLoading } = useCandidate(candidateId);
+ * // candidate.ai_score, candidate.activities, candidate.interview
+ */
 export function useCandidate(id: string) {
   return useQuery({
     queryKey: candidateKeys.detail(id),
@@ -140,6 +195,16 @@ export function useCandidate(id: string) {
   });
 }
 
+/**
+ * Hook for updating candidate fields
+ * Uses optimistic updates for immediate UI feedback
+ * 
+ * @returns Mutation with optimistic update support
+ * 
+ * @example
+ * const { mutate } = useUpdateCandidate();
+ * mutate({ id: candidateId, data: { is_starred: true } });
+ */
 export function useUpdateCandidate() {
   const queryClient = useQueryClient();
 
@@ -174,6 +239,16 @@ export function useUpdateCandidate() {
   });
 }
 
+/**
+ * Hook for moving a candidate to a different pipeline stage
+ * Uses optimistic updates across all candidate lists
+ * 
+ * @returns Mutation for stage changes
+ * 
+ * @example
+ * const { mutate } = useMoveCandidate();
+ * mutate({ candidateId, stage: "technical", notes: "Passed phone screen" });
+ */
 export function useMoveCandidate() {
   const queryClient = useQueryClient();
 
@@ -220,6 +295,16 @@ export function useMoveCandidate() {
   });
 }
 
+/**
+ * Hook for starring/unstarring a candidate
+ * Uses optimistic updates for immediate feedback
+ * 
+ * @returns Mutation for toggling star status
+ * 
+ * @example
+ * const { mutate } = useStarCandidate();
+ * mutate({ id: candidateId, starred: true });
+ */
 export function useStarCandidate() {
   const queryClient = useQueryClient();
 
@@ -255,6 +340,16 @@ export function useStarCandidate() {
   });
 }
 
+/**
+ * Hook for deleting a candidate
+ * Removes from cache on success
+ * 
+ * @returns Mutation for deletion
+ * 
+ * @example
+ * const { mutate } = useDeleteCandidate();
+ * mutate(candidateId);
+ */
 export function useDeleteCandidate() {
   const queryClient = useQueryClient();
 
@@ -267,6 +362,16 @@ export function useDeleteCandidate() {
   });
 }
 
+/**
+ * Hook for moving multiple candidates to a stage in bulk
+ * Useful for batch rejections or stage transitions
+ * 
+ * @returns Mutation with succeeded/failed counts
+ * 
+ * @example
+ * const { mutate } = useBulkMoveCandidates();
+ * mutate({ candidateIds: [...], stage: "rejected", rejection_reason: "..." });
+ */
 export function useBulkMoveCandiates() {
   const queryClient = useQueryClient();
 
@@ -297,6 +402,16 @@ export function useBulkMoveCandiates() {
   });
 }
 
+/**
+ * Hook for creating a new candidate
+ * Invalidates lists on success to show the new candidate
+ * 
+ * @returns Mutation for candidate creation
+ * 
+ * @example
+ * const { mutate, isPending } = useCreateCandidate();
+ * mutate({ job_id: "...", email: "...", full_name: "..." });
+ */
 export function useCreateCandidate() {
   const queryClient = useQueryClient();
 

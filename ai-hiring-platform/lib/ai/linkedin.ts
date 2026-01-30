@@ -1,8 +1,25 @@
+/**
+ * @fileoverview LinkedIn API integration via Proxycurl
+ * 
+ * This module fetches LinkedIn profiles using the Proxycurl API to extract:
+ * - Name and bio from profile
+ * - Skills from skills section and experience descriptions
+ * - Work experience history
+ * 
+ * Requires PROXYCURL_API_KEY environment variable.
+ * Falls back to GitHub or manual entry if not configured.
+ * 
+ * @module lib/ai/linkedin
+ * @see https://nubela.co/proxycurl/
+ */
+
 import axios from "axios";
 import { CandidateProfile } from "@/types";
 
+/** Proxycurl API endpoint for LinkedIn profiles */
 const PROXYCURL_API = "https://nubela.co/proxycurl/api/v2/linkedin";
 
+/** Work experience entry from Proxycurl */
 interface ProxycurlExperience {
   title: string;
   company: string;
@@ -11,6 +28,7 @@ interface ProxycurlExperience {
   description?: string;
 }
 
+/** LinkedIn profile response from Proxycurl */
 interface ProxycurlProfile {
   first_name: string;
   last_name: string;

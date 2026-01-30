@@ -464,6 +464,7 @@ export default function JobDetailClient({ jobId }: JobDetailClientProps) {
           candidateEmail={candidateToSchedule.email}
           jobId={jobId}
           jobTitle={job.title}
+          questionGenerationStatus={candidateToSchedule.questionGenerationStatus || candidateToSchedule.question_generation_status || "none"}
           onScheduled={handleScheduled}
         />
       )}

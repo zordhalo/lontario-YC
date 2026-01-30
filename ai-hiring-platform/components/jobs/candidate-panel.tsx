@@ -124,6 +124,9 @@ export function CandidatePanel({
       ai_strengths: (details.ai_strengths as string[]) || candidate.ai_strengths,
       concerns: (details.ai_concerns as string[]) || candidate.concerns,
       ai_concerns: (details.ai_concerns as string[]) || candidate.ai_concerns,
+      // Question generation status
+      questionGenerationStatus: (details.question_generation_status as string) || candidate.questionGenerationStatus || "none",
+      question_generation_status: (details.question_generation_status as string) || candidate.question_generation_status || "none",
     };
   }, [candidate, candidateDetails]);
   
@@ -565,6 +568,7 @@ export function CandidatePanel({
           candidateEmail={displayCandidate.email || ""}
           jobId={jobId}
           jobTitle={jobTitle}
+          questionGenerationStatus={displayCandidate.questionGenerationStatus || displayCandidate.question_generation_status || "none"}
           onScheduled={handleInterviewScheduled}
         />
       )}

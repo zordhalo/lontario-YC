@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { generateInterviewQuestions } from "@/lib/ai/openai";
 import {
   ScheduleInterviewRequestSchema,
@@ -7,6 +7,7 @@ import {
   JobDescription,
   CandidateProfile,
   GeneratedQuestion,
+  PregeneratedQuestions,
 } from "@/types";
 
 /**
@@ -122,47 +123,75 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date(scheduledDate);
     expiresAt.setHours(expiresAt.getHours() + 24);
 
-    // Prepare data for question generation
-    const jobDescription: JobDescription = {
-      title: job.title,
-      level: job.level || "mid",
-      description: job.description,
-      requiredSkills: job.required_skills || [],
-      niceToHave: job.nice_to_have_skills || [],
-    };
+    // Try to use pre-generated questions first (instant scheduling!)
+    let questionSet: { questions: GeneratedQuestion[]; totalEstimatedTime: number } | null = null;
+    let usedPregeneratedId: string | null = null;
 
-    // Build candidate profile from available data
-    const candidateProfile: CandidateProfile = {
-      source: candidate.github_url
-        ? "github"
-        : candidate.linkedin_url
-          ? "linkedin"
-          : "resume",
-      name: candidate.full_name,
-      url: candidate.github_url || candidate.linkedin_url || undefined,
-      bio: candidate.ai_summary || undefined,
-      skills: candidate.extracted_skills || [],
-      experience: candidate.resume_text
-        ? [candidate.resume_text.slice(0, 500)]
-        : [],
-    };
+    const { data: pregeneratedQuestions } = await supabase
+      .from("pregenerated_questions")
+      .select("*")
+      .eq("candidate_id", candidate_id)
+      .eq("job_id", job_id)
+      .eq("status", "ready")
+      .single();
 
-    // Generate interview questions
-    let questionSet;
-    try {
-      questionSet = await generateInterviewQuestions(
-        jobDescription,
-        candidateProfile
-      );
-    } catch (aiError) {
-      console.error("Failed to generate questions:", aiError);
-      return NextResponse.json(
-        {
-          error: "Failed to generate interview questions",
-          code: "AI_GENERATION_ERROR",
-        },
-        { status: 500 }
-      );
+    if (pregeneratedQuestions && pregeneratedQuestions.questions?.length > 0) {
+      // Use pre-generated questions - this is instant!
+      console.log(`Using pre-generated questions for candidate ${candidate_id}`);
+      questionSet = {
+        questions: pregeneratedQuestions.questions as GeneratedQuestion[],
+        totalEstimatedTime: pregeneratedQuestions.total_estimated_time,
+      };
+      usedPregeneratedId = pregeneratedQuestions.id;
+    } else {
+      // Fall back to generating questions on-demand (slower path)
+      console.log(`No pre-generated questions available, generating on-demand for candidate ${candidate_id}`);
+      
+      // Prepare data for question generation
+      const jobDescription: JobDescription = {
+        title: job.title,
+        level: job.level || "mid",
+        description: job.description,
+        requiredSkills: job.required_skills || [],
+        niceToHave: job.nice_to_have_skills || [],
+      };
+
+      // Build candidate profile from available data
+      const candidateProfile: CandidateProfile = {
+        source: candidate.github_url
+          ? "github"
+          : candidate.linkedin_url
+            ? "linkedin"
+            : "resume",
+        name: candidate.full_name,
+        url: candidate.github_url || candidate.linkedin_url || undefined,
+        bio: candidate.ai_summary || undefined,
+        skills: candidate.extracted_skills || [],
+        experience: candidate.resume_text
+          ? [candidate.resume_text.slice(0, 500)]
+          : [],
+      };
+
+      // Generate interview questions
+      try {
+        const generatedSet = await generateInterviewQuestions(
+          jobDescription,
+          candidateProfile
+        );
+        questionSet = {
+          questions: generatedSet.questions,
+          totalEstimatedTime: generatedSet.totalEstimatedTime,
+        };
+      } catch (aiError) {
+        console.error("Failed to generate questions:", aiError);
+        return NextResponse.json(
+          {
+            error: "Failed to generate interview questions",
+            code: "AI_GENERATION_ERROR",
+          },
+          { status: 500 }
+        );
+      }
     }
 
     // Create the AI interview record
@@ -218,6 +247,24 @@ export async function POST(request: NextRequest) {
     if (questionsError) {
       console.error("Failed to insert questions:", questionsError);
       // Don't fail the whole operation, questions can be regenerated
+    }
+
+    // Mark pre-generated questions as used (if we used them)
+    if (usedPregeneratedId) {
+      await supabase
+        .from("pregenerated_questions")
+        .update({
+          status: "used",
+          used_at: new Date().toISOString(),
+          used_in_interview_id: interview.id,
+        })
+        .eq("id", usedPregeneratedId);
+
+      // Update candidate's question generation status
+      await supabase
+        .from("candidates")
+        .update({ question_generation_status: "none" })
+        .eq("id", candidate_id);
     }
 
     // Log activity

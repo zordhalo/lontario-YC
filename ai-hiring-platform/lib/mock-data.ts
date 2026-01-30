@@ -1,7 +1,24 @@
-// Types for API data normalization
-// These provide compatibility between API responses (snake_case) and UI components (camelCase)
+/**
+ * @fileoverview Data normalization utilities for API compatibility
+ * 
+ * This module provides types and functions to normalize data between:
+ * - API responses (snake_case from Supabase)
+ * - UI components (camelCase for React conventions)
+ * 
+ * The normalizer functions handle both directions, allowing components
+ * to work with either format transparently.
+ * 
+ * @module lib/mock-data
+ */
 
-// Valid candidate stages matching the database schema
+// ============================================================
+// NORMALIZED TYPES - Bridge API and UI conventions
+// ============================================================
+
+/**
+ * Valid candidate stages matching the database schema
+ * Alias for CandidateStage from types/index.ts
+ */
 export type CandidateStatus = 
   | "applied" 
   | "screening"
@@ -13,25 +30,53 @@ export type CandidateStatus =
   | "hired" 
   | "rejected"
 
+/**
+ * Status of background question pre-generation for a candidate
+ * Questions are pre-generated after scoring to enable instant interview scheduling
+ */
+export type QuestionGenerationStatus = "none" | "pending" | "generating" | "ready" | "failed"
+
+/**
+ * Normalized Candidate type with both snake_case and camelCase fields
+ * 
+ * This interface includes both naming conventions to support:
+ * - Direct API response usage (snake_case)
+ * - Frontend component conventions (camelCase)
+ * 
+ * Use normalizeCandidate() to convert raw API data to this format.
+ */
 export interface Candidate {
   id: string
+  /** camelCase: display name */
   name: string
-  full_name?: string  // Database field name
+  /** snake_case: database field */
+  full_name?: string
   email: string
+  /** camelCase: avatar URL */
   avatar?: string
-  avatar_url?: string  // GitHub profile picture URL
+  /** snake_case: GitHub profile picture URL */
+  avatar_url?: string
+  /** camelCase: AI match score (0-100) */
   aiScore: number
-  ai_score?: number   // Database field name
+  /** snake_case: database field */
+  ai_score?: number
+  /** camelCase: formatted experience string (e.g., "5 years") */
   experience: string
   years_of_experience?: number
   skills: string[]
   extracted_skills?: string[]
+  /** camelCase: pipeline stage */
   status: CandidateStatus
-  stage?: CandidateStatus  // Database field name
+  /** snake_case: database field */
+  stage?: CandidateStatus
+  /** camelCase: ISO date string of application */
   appliedAt: string
-  applied_at?: string     // Database field name
+  /** snake_case: database field */
+  applied_at?: string
+  /** camelCase: associated job ID */
   jobId: string
-  job_id?: string         // Database field name
+  /** snake_case: database field */
+  job_id?: string
   summary?: string
   ai_summary?: string
   strengths?: string[]
@@ -45,19 +90,41 @@ export interface Candidate {
   portfolio?: string
   portfolio_url?: string
   is_starred?: boolean
+  /** camelCase: question pre-generation status */
+  questionGenerationStatus?: QuestionGenerationStatus
+  /** snake_case: database field */
+  question_generation_status?: QuestionGenerationStatus
 }
 
-// Input type for normalizeCandidate - accepts both API (null) and frontend (undefined) values
+/**
+ * Input type for normalizeCandidate
+ * Accepts any object shape to handle both API (null) and frontend (undefined) values
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type CandidateInput = Record<string, any>
 
-// Input type for normalizeJob - accepts both API (null) and frontend (undefined) values  
+/**
+ * Input type for normalizeJob
+ * Accepts any object shape to handle both API (null) and frontend (undefined) values
+ */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type JobInput = Record<string, any>
 
-// Stage counts for pipeline progress calculation
+/**
+ * Partial record of stage counts for pipeline progress calculation
+ * Used to show how many candidates are at each stage
+ */
 export type StageCounts = Partial<Record<CandidateStatus, number>>
 
+/**
+ * Normalized Job type with both snake_case and camelCase fields
+ * 
+ * This interface includes both naming conventions to support:
+ * - Direct API response usage (snake_case)
+ * - Frontend component conventions (camelCase)
+ * 
+ * Use normalizeJob() to convert raw API data to this format.
+ */
 export interface Job {
   id: string
   title: string
@@ -66,28 +133,59 @@ export interface Job {
   status: "active" | "draft" | "closed" | "paused"
   location: string | null
   location_type?: "remote" | "onsite" | "hybrid" | null
+  /** camelCase: employment type */
   type: "full-time" | "part-time" | "contract" | "internship"
+  /** snake_case: database field */
   employment_type?: "full-time" | "part-time" | "contract" | "internship"
+  /** camelCase: total applicant count */
   applicants: number
+  /** snake_case: database field */
   total_applicants?: number
+  /** camelCase: number of high-scoring candidates */
   topMatches: number
+  /** snake_case: database field */
   active_candidates?: number
+  /** camelCase: archive status */
   isArchived: boolean
+  /** snake_case: database field */
   is_archived?: boolean
+  /** camelCase: ISO date string */
   createdAt: string
+  /** snake_case: database field */
   created_at?: string
   description?: string
+  /** camelCase: job requirements */
   requirements?: string[]
+  /** snake_case: database field */
   required_skills?: string[]
   nice_to_have_skills?: string[]
   slug?: string
-  // Pipeline progress data
+  /** camelCase: candidates per stage */
   stageCounts?: StageCounts
+  /** snake_case: database field */
   stage_counts?: StageCounts
 }
 
-// Helper to normalize candidate data from API to component format
-// Accepts any object shape to handle both API (null values) and frontend (undefined values)
+// ============================================================
+// NORMALIZER FUNCTIONS - Convert between API and UI formats
+// ============================================================
+
+/**
+ * Normalizes candidate data from API response to component format
+ * 
+ * Handles both snake_case (API) and camelCase (UI) field names,
+ * providing both conventions in the output for maximum compatibility.
+ * 
+ * @param data - Raw candidate data from API or form
+ * @returns Normalized Candidate with both naming conventions
+ * 
+ * @example
+ * // From API response
+ * const apiData = { full_name: "John Doe", ai_score: 85 };
+ * const candidate = normalizeCandidate(apiData);
+ * console.log(candidate.name); // "John Doe"
+ * console.log(candidate.aiScore); // 85
+ */
 export function normalizeCandidate(data: CandidateInput): Candidate {
   return {
     id: data.id || "",
@@ -121,11 +219,27 @@ export function normalizeCandidate(data: CandidateInput): Candidate {
     portfolio: data.portfolio || data.portfolio_url || undefined,
     portfolio_url: data.portfolio_url || data.portfolio || undefined,
     is_starred: data.is_starred ?? undefined,
+    questionGenerationStatus: data.questionGenerationStatus || data.question_generation_status || "none",
+    question_generation_status: data.question_generation_status || data.questionGenerationStatus || "none",
   }
 }
 
-// Helper to normalize job data from API to component format
-// Accepts any object shape to handle both API (null values) and frontend (undefined values)
+/**
+ * Normalizes job data from API response to component format
+ * 
+ * Handles both snake_case (API) and camelCase (UI) field names,
+ * providing both conventions in the output for maximum compatibility.
+ * 
+ * @param data - Raw job data from API or form
+ * @returns Normalized Job with both naming conventions
+ * 
+ * @example
+ * // From API response
+ * const apiData = { total_applicants: 25, is_archived: false };
+ * const job = normalizeJob(apiData);
+ * console.log(job.applicants); // 25
+ * console.log(job.isArchived); // false
+ */
 export function normalizeJob(data: JobInput): Job {
   return {
     id: data.id || "",

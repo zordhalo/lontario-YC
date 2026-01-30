@@ -1,3 +1,21 @@
+/**
+ * @fileoverview OpenAI integration for AI-powered hiring features
+ * 
+ * This module provides functions for all AI operations in the platform:
+ * - Interview question generation (personalized to candidate/job)
+ * - Follow-up question generation
+ * - Candidate-job matching/scoring
+ * - Resume parsing
+ * - Answer evaluation
+ * - Job description generation
+ * 
+ * All functions use OpenAI's structured outputs (zodResponseFormat) for
+ * type-safe, validated responses.
+ * 
+ * @module lib/ai/openai
+ * @requires OPENAI_API_KEY environment variable
+ */
+
 import OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
 import {
@@ -18,9 +36,20 @@ import {
   ScoringCriteria,
 } from "@/types";
 
-// Lazy initialization to avoid build-time errors
+// ============================================================
+// CLIENT INITIALIZATION
+// ============================================================
+
+/** Singleton OpenAI client instance */
 let openaiClient: OpenAI | null = null;
 
+/**
+ * Gets or creates the OpenAI client instance
+ * Uses lazy initialization to avoid build-time errors when env vars aren't set
+ * 
+ * @returns OpenAI client instance
+ * @throws Error if OPENAI_API_KEY is not configured
+ */
 function getOpenAIClient(): OpenAI {
   if (!openaiClient) {
     if (!process.env.OPENAI_API_KEY) {
@@ -33,18 +62,35 @@ function getOpenAIClient(): OpenAI {
   return openaiClient;
 }
 
-// Default model configuration
+// ============================================================
+// CONFIGURATION
+// ============================================================
+
+/**
+ * Default AI model configuration
+ * Uses GPT-4o with structured outputs for reliable JSON responses
+ */
 export const AI_CONFIG = {
+  /** Model version with structured output support */
   model: "gpt-4o-2024-08-06",
+  /** Creativity level (0 = deterministic, 1 = creative) */
   temperature: 0.7,
+  /** Maximum tokens in response */
   maxTokens: 4096,
 } as const;
 
-// Rate limiting helper
+/**
+ * Simple rate limiter to prevent API quota exhaustion
+ * Ensures minimum interval between API calls
+ */
 const rateLimiter = {
   lastCall: 0,
   minInterval: 100, // ms between calls
 
+  /**
+   * Waits if needed to respect rate limits
+   * Should be called before each API request
+   */
   async wait() {
     const now = Date.now();
     const elapsed = now - this.lastCall;
@@ -61,6 +107,10 @@ const rateLimiter = {
 // INTERVIEW QUESTION GENERATION
 // ============================================================
 
+/**
+ * System prompt for question generation
+ * Instructs GPT to act as an expert technical recruiter
+ */
 const QUESTION_SYSTEM_PROMPT = `You are an expert technical recruiter and interviewer with 15+ years of experience at FAANG companies.
 
 Your task is to generate highly targeted, personalized interview questions that:
@@ -90,6 +140,13 @@ OUTPUT FORMAT:
 - Group questions logically by category
 - Provide context explaining WHY each question matters for THIS candidate`;
 
+/**
+ * Builds the user prompt for question generation with job and candidate context
+ * 
+ * @param job - Job description with requirements
+ * @param candidate - Candidate profile with skills and experience
+ * @returns Formatted prompt string for GPT
+ */
 function buildQuestionPrompt(
   job: JobDescription,
   candidate: CandidateProfile
@@ -149,6 +206,26 @@ For each question:
 - Assign realistic time estimates (5-15 minutes per question)`;
 }
 
+/**
+ * Generates personalized interview questions for a candidate
+ * 
+ * Questions are tailored to:
+ * - The specific job requirements and level
+ * - The candidate's skills, projects, and experience
+ * - Progressive difficulty (warm-up → technical → challenging)
+ * 
+ * @param job - Job description with requirements and level
+ * @param candidate - Candidate profile with skills and background
+ * @returns QuestionSet with 6-10 personalized questions grouped by category
+ * 
+ * @throws Error if OpenAI API fails or returns invalid response
+ * 
+ * @example
+ * const questions = await generateInterviewQuestions(
+ *   { title: "Senior Engineer", level: "senior", requiredSkills: ["React", "TypeScript"], ... },
+ *   { name: "Jane Doe", skills: ["React", "Node.js"], projects: [...], ... }
+ * );
+ */
 export async function generateInterviewQuestions(
   job: JobDescription,
   candidate: CandidateProfile
@@ -197,6 +274,10 @@ export async function generateInterviewQuestions(
 // FOLLOW-UP QUESTION GENERATION
 // ============================================================
 
+/**
+ * System prompt for follow-up question generation
+ * Creates probing questions based on candidate's answer
+ */
 const FOLLOW_UP_SYSTEM_PROMPT = `You are conducting a technical interview. Your role is to generate intelligent follow-up questions that probe deeper into the candidate's understanding.
 
 Generate follow-up questions that:
@@ -205,6 +286,28 @@ Generate follow-up questions that:
 3. Reveal how they think through edge cases or trade-offs
 4. Are natural and conversational (not confrontational)`;
 
+/**
+ * Generates an intelligent follow-up question based on candidate's answer
+ * 
+ * Useful for:
+ * - Probing deeper into vague answers
+ * - Testing edge case understanding
+ * - Revealing thought process on trade-offs
+ * 
+ * @param originalQuestion - The question that was answered
+ * @param candidateAnswer - The candidate's response text
+ * @param job - Job context for relevance
+ * @returns FollowUpResponse with question and rationale
+ * 
+ * @example
+ * const followUp = await generateFollowUpQuestion(
+ *   question,
+ *   "I would use a microservices architecture...",
+ *   jobDescription
+ * );
+ * // followUp.followUp: "How would you handle data consistency across those microservices?"
+ * // followUp.rationale: "Tests understanding of distributed systems challenges"
+ */
 export async function generateFollowUpQuestion(
   originalQuestion: GeneratedQuestion,
   candidateAnswer: string,
@@ -247,6 +350,10 @@ Based on the candidate's answer, generate ONE intelligent follow-up question tha
 // CANDIDATE SCORING
 // ============================================================
 
+/**
+ * System prompt for candidate-job scoring
+ * Provides scoring guidelines and weighting factors
+ */
 const SCORING_SYSTEM_PROMPT = `You are an expert technical recruiter evaluating candidate-job fit.
 
 SCORING GUIDELINES:
@@ -264,6 +371,28 @@ FACTORS TO CONSIDER:
 
 BE BALANCED: Acknowledge both strengths and concerns. Provide actionable insights.`;
 
+/**
+ * Scores a candidate against a job's requirements
+ * 
+ * Provides a comprehensive match analysis including:
+ * - Overall score (0-100)
+ * - Category breakdown (skills, experience, education, keywords)
+ * - Skill gap analysis (matched, missing, bonus)
+ * - Strengths and concerns
+ * - Hiring recommendation
+ * 
+ * @param candidate - Candidate data including skills, experience, resume
+ * @param job - Job requirements including title, level, skills
+ * @returns MatchScore with detailed breakdown and recommendation
+ * 
+ * @example
+ * const score = await scoreCandidate(
+ *   { skills: ["React", "TypeScript"], experience: ["3 years at startup"], resume_text: "..." },
+ *   { title: "Senior Engineer", level: "senior", required_skills: ["React", "Node.js"], ... }
+ * );
+ * // score.overall_score: 78
+ * // score.recommendation: "yes"
+ */
 export async function scoreCandidate(
   candidate: {
     skills: string[];
@@ -326,6 +455,10 @@ Evaluate this candidate's fit for the role.`;
 // RESUME PARSING
 // ============================================================
 
+/**
+ * System prompt for resume parsing
+ * Extracts structured data from unstructured resume text
+ */
 const RESUME_SYSTEM_PROMPT = `You are an expert resume parser. Extract structured information from resumes with high accuracy.
 
 RULES:
@@ -338,6 +471,25 @@ RULES:
 
 Be thorough and precise. Missing information is better than guessed information.`;
 
+/**
+ * Parses unstructured resume text into structured data
+ * 
+ * Extracts:
+ * - Contact information (name, email, phone, location)
+ * - Professional URLs (LinkedIn, GitHub)
+ * - Skills (technical, soft, tools)
+ * - Work experience with highlights
+ * - Education and certifications
+ * - Calculated years of experience
+ * 
+ * @param resumeText - Raw resume text (plain text or extracted from PDF)
+ * @returns ParsedResume with structured fields
+ * 
+ * @example
+ * const parsed = await parseResume(resumeText);
+ * console.log(parsed.skills); // ["React", "TypeScript", "Node.js", ...]
+ * console.log(parsed.years_of_experience); // 5
+ */
 export async function parseResume(resumeText: string): Promise<ParsedResume> {
   await rateLimiter.wait();
   const openai = getOpenAIClient();
@@ -365,6 +517,10 @@ export async function parseResume(resumeText: string): Promise<ParsedResume> {
 // ANSWER EVALUATION
 // ============================================================
 
+/**
+ * System prompt for answer evaluation
+ * Provides scoring guidelines for interview answers
+ */
 const EVALUATION_SYSTEM_PROMPT = `You are evaluating a candidate's interview answer. Provide fair, constructive feedback.
 
 SCORING (0-10):
@@ -376,6 +532,31 @@ SCORING (0-10):
 
 Evaluate each aspect of the scoring rubric and provide specific, actionable feedback.`;
 
+/**
+ * Evaluates a candidate's interview answer against a scoring rubric
+ * 
+ * Provides:
+ * - Overall score (0-10)
+ * - Constructive feedback
+ * - Per-criterion score breakdown
+ * - Optional follow-up question suggestion
+ * 
+ * @param question - The interview question with category and scoring rubric
+ * @param answer - The candidate's text answer
+ * @param jobContext - Job description for evaluation context
+ * @param candidateBackground - Candidate info for personalized evaluation
+ * @returns AnswerEvaluation with score, feedback, and breakdown
+ * 
+ * @example
+ * const evaluation = await evaluateAnswer(
+ *   { text: "Explain React hooks", category: "technical", scoring_rubric: [...] },
+ *   "Hooks allow functional components to have state...",
+ *   "Senior React Developer position",
+ *   "5 years React experience"
+ * );
+ * // evaluation.score: 8
+ * // evaluation.feedback: "Strong understanding of hooks with good examples..."
+ */
 export async function evaluateAnswer(
   question: {
     text: string;
@@ -435,6 +616,10 @@ Evaluate this answer against each aspect of the scoring rubric.`;
 // JOB DESCRIPTION GENERATION
 // ============================================================
 
+/**
+ * System prompt for job description generation
+ * Creates inclusive, compelling job postings
+ */
 const JOB_DESCRIPTION_SYSTEM_PROMPT = `You are an expert recruiter who writes compelling, inclusive job descriptions.
 
 RULES:
@@ -445,6 +630,32 @@ RULES:
 5. Include information about team and culture
 6. Keep it concise but comprehensive`;
 
+/**
+ * Generates an enhanced job description using AI
+ * 
+ * Creates or improves job descriptions to be:
+ * - Compelling and engaging
+ * - Inclusive (gender-neutral language)
+ * - Clear about responsibilities and requirements
+ * - Focused on growth opportunities
+ * 
+ * @param options - Job details to base description on
+ * @param options.title - Job title
+ * @param options.level - Seniority level
+ * @param options.required_skills - Required technical skills
+ * @param options.base_description - Optional existing description to enhance
+ * @param options.department - Department name
+ * @param options.location - Work location
+ * @returns Generated or enhanced job description text
+ * 
+ * @example
+ * const description = await generateJobDescription({
+ *   title: "Senior Software Engineer",
+ *   level: "senior",
+ *   required_skills: ["React", "TypeScript", "Node.js"],
+ *   department: "Platform"
+ * });
+ */
 export async function generateJobDescription(options: {
   title: string;
   level?: string;

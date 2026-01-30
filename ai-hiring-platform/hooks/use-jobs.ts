@@ -1,9 +1,31 @@
+/**
+ * @fileoverview React Query hooks for job management
+ * 
+ * This module provides client-side hooks for all job operations:
+ * - List jobs with filtering and pagination
+ * - Get individual job details
+ * - Create, update, delete jobs
+ * - Publish, pause, close jobs
+ * - Archive/unarchive jobs
+ * 
+ * Uses React Query for caching and optimistic updates.
+ * 
+ * @module hooks/use-jobs
+ */
+
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Job, ListJobsQuery, ListJobsResponse, CreateJobRequest } from "@/types";
 
-// Query keys
+// ============================================================
+// QUERY KEYS - For cache management
+// ============================================================
+
+/**
+ * Query key factory for job queries
+ * Provides consistent keys for cache invalidation
+ */
 export const jobKeys = {
   all: ["jobs"] as const,
   lists: () => [...jobKeys.all, "list"] as const,
@@ -74,7 +96,19 @@ async function deleteJob(id: string): Promise<void> {
   }
 }
 
-// Hooks
+// ============================================================
+// REACT QUERY HOOKS
+// ============================================================
+
+/**
+ * Hook for fetching a paginated list of jobs
+ * 
+ * @param filters - Optional query filters (status, include_archived, sort)
+ * @returns Query result with jobs and pagination
+ * 
+ * @example
+ * const { data, isLoading } = useJobs({ status: "active" });
+ */
 export function useJobs(filters: ListJobsQuery = {}) {
   return useQuery({
     queryKey: jobKeys.list(filters),
@@ -83,6 +117,12 @@ export function useJobs(filters: ListJobsQuery = {}) {
   });
 }
 
+/**
+ * Hook for fetching a single job with candidate summary
+ * 
+ * @param id - Job UUID
+ * @returns Query result with job details
+ */
 export function useJob(id: string) {
   return useQuery({
     queryKey: jobKeys.detail(id),
@@ -92,6 +132,12 @@ export function useJob(id: string) {
   });
 }
 
+/**
+ * Hook for creating a new job
+ * Sets the new job in cache on success
+ * 
+ * @returns Mutation for job creation
+ */
 export function useCreateJob() {
   const queryClient = useQueryClient();
 
@@ -106,6 +152,12 @@ export function useCreateJob() {
   });
 }
 
+/**
+ * Hook for updating job fields
+ * Uses optimistic updates for immediate feedback
+ * 
+ * @returns Mutation with optimistic update support
+ */
 export function useUpdateJob() {
   const queryClient = useQueryClient();
 
@@ -140,6 +192,12 @@ export function useUpdateJob() {
   });
 }
 
+/**
+ * Hook for deleting a job
+ * Removes from cache on success
+ * 
+ * @returns Mutation for job deletion
+ */
 export function useDeleteJob() {
   const queryClient = useQueryClient();
 
@@ -154,6 +212,11 @@ export function useDeleteJob() {
   });
 }
 
+/**
+ * Hook for publishing a draft job (sets status to "active")
+ * 
+ * @returns Mutation for publishing
+ */
 export function usePublishJob() {
   const queryClient = useQueryClient();
 
@@ -166,6 +229,12 @@ export function usePublishJob() {
   });
 }
 
+/**
+ * Hook for closing a job (sets status to "closed")
+ * Closed jobs no longer accept applications
+ * 
+ * @returns Mutation for closing
+ */
 export function useCloseJob() {
   const queryClient = useQueryClient();
 
@@ -178,6 +247,12 @@ export function useCloseJob() {
   });
 }
 
+/**
+ * Hook for archiving a job
+ * Archived jobs are hidden from default views
+ * 
+ * @returns Mutation for archiving
+ */
 export function useArchiveJob() {
   const queryClient = useQueryClient();
 
@@ -190,6 +265,12 @@ export function useArchiveJob() {
   });
 }
 
+/**
+ * Hook for unarchiving a job
+ * Restores job to normal visibility
+ * 
+ * @returns Mutation for unarchiving
+ */
 export function useUnarchiveJob() {
   const queryClient = useQueryClient();
 

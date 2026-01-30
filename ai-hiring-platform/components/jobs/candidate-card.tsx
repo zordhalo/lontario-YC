@@ -2,7 +2,7 @@
 
 import React from "react"
 
-import { Calendar, MoreHorizontal, ThumbsDown, ThumbsUp } from "lucide-react"
+import { Calendar, CheckCircle2, Loader2, MoreHorizontal, ThumbsDown, ThumbsUp, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -146,17 +146,43 @@ export function CandidateCard({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-7 w-7 text-muted-foreground hover:text-primary"
+                  className="h-7 w-7 text-muted-foreground hover:text-primary relative"
                   onClick={(e) => {
                     e.stopPropagation()
                     onSchedule?.(candidate)
                   }}
                 >
                   <Calendar className="h-3.5 w-3.5" />
+                  {/* Question generation status indicator */}
+                  {candidate.questionGenerationStatus === "ready" && (
+                    <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-green-500" />
+                  )}
+                  {candidate.questionGenerationStatus === "generating" && (
+                    <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                  )}
                   <span className="sr-only">Schedule Interview</span>
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Schedule AI Interview</TooltipContent>
+              <TooltipContent>
+                {candidate.questionGenerationStatus === "ready" ? (
+                  <span className="flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3 text-green-500" />
+                    Questions ready - Instant scheduling
+                  </span>
+                ) : candidate.questionGenerationStatus === "generating" ? (
+                  <span className="flex items-center gap-1">
+                    <Loader2 className="h-3 w-3 animate-spin text-amber-500" />
+                    Preparing interview questions...
+                  </span>
+                ) : candidate.questionGenerationStatus === "failed" ? (
+                  <span className="flex items-center gap-1">
+                    <XCircle className="h-3 w-3 text-destructive" />
+                    Schedule AI Interview (questions will be generated)
+                  </span>
+                ) : (
+                  "Schedule AI Interview"
+                )}
+              </TooltipContent>
             </Tooltip>
           </div>
           <DropdownMenu>

@@ -1,8 +1,24 @@
+/**
+ * @fileoverview GitHub API integration for candidate profile fetching
+ * 
+ * This module fetches and processes GitHub profiles to extract:
+ * - Skills from programming languages and repo topics
+ * - Project experience from public repositories
+ * - Years of experience from account age
+ * - Avatar URL for display
+ * 
+ * Supports authenticated requests with GITHUB_TOKEN env var for higher rate limits.
+ * 
+ * @module lib/ai/github
+ */
+
 import axios from "axios";
 import { CandidateProfile } from "@/types";
 
+/** GitHub API base URL */
 const GITHUB_API = "https://api.github.com";
 
+/** GitHub user profile response */
 interface GitHubUser {
   login: string;
   name: string | null;
@@ -13,6 +29,7 @@ interface GitHubUser {
   created_at: string;
 }
 
+/** GitHub repository response */
 interface GitHubRepo {
   name: string;
   description: string | null;

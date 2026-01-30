@@ -1,3 +1,19 @@
+/**
+ * @fileoverview Email service using Resend
+ * 
+ * This module handles all transactional email sending for the platform:
+ * - Interview scheduled notifications
+ * - Interview reminders (24h and 1h before)
+ * - Interview completed confirmations
+ * - Reschedule and cancellation notifications
+ * 
+ * Uses Resend API for reliable email delivery.
+ * 
+ * @module lib/email
+ * @requires RESEND_API_KEY environment variable
+ * @see https://resend.com/docs
+ */
+
 import { Resend } from "resend";
 import {
   getInterviewScheduledTemplate,
@@ -8,9 +24,20 @@ import {
   type EmailTemplateData,
 } from "./templates";
 
-// Lazy initialization to avoid build-time errors
+// ============================================================
+// CLIENT INITIALIZATION
+// ============================================================
+
+/** Singleton Resend client instance */
 let resendClient: Resend | null = null;
 
+/**
+ * Gets or creates the Resend client instance
+ * Uses lazy initialization to avoid build-time errors
+ * 
+ * @returns Resend client instance
+ * @throws Error if RESEND_API_KEY is not configured
+ */
 function getResendClient(): Resend {
   if (!resendClient) {
     const apiKey = process.env.RESEND_API_KEY;
@@ -22,9 +49,17 @@ function getResendClient(): Resend {
   return resendClient;
 }
 
-// Default sender - should be verified in Resend dashboard
+/** Default sender address - should be verified domain in Resend dashboard */
 const DEFAULT_FROM = process.env.EMAIL_FROM || "AI Hiring Platform <noreply@example.com>";
 
+// ============================================================
+// TYPE DEFINITIONS
+// ============================================================
+
+/**
+ * Supported email types
+ * Each type corresponds to a specific email template
+ */
 export type EmailType =
   | "interview_scheduled"
   | "interview_reminder_24h"
@@ -33,15 +68,23 @@ export type EmailType =
   | "interview_rescheduled"
   | "interview_cancelled";
 
+/** Options for sending an email */
 interface SendEmailOptions {
+  /** Recipient email address */
   to: string;
+  /** Email type determining template to use */
   type: EmailType;
+  /** Data to populate the template */
   data: EmailTemplateData;
 }
 
+/** Result of a send email operation */
 interface SendEmailResult {
+  /** Whether the email was sent successfully */
   success: boolean;
+  /** Resend message ID if successful */
   messageId?: string;
+  /** Error message if failed */
   error?: string;
 }
 
