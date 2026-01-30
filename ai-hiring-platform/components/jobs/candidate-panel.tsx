@@ -75,6 +75,52 @@ const statusOptions: { value: Candidate["status"]; label: string }[] = [
   { value: "rejected", label: "Rejected" },
 ]
 
+// Format timestamp to human-readable "time ago" format
+function formatTimeAgo(dateString: string | undefined): string {
+  if (!dateString) return "Unknown date"
+  
+  try {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+    
+    if (diffMins < 1) return "Just now"
+    if (diffMins < 60) return `${diffMins} minute${diffMins === 1 ? "" : "s"} ago`
+    if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`
+    if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`
+    
+    // For older dates, show formatted date
+    return date.toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+    })
+  } catch {
+    return dateString
+  }
+}
+
+// Get full date string for tooltip
+function formatFullDate(dateString: string | undefined): string {
+  if (!dateString) return ""
+  try {
+    const date = new Date(dateString)
+    return date.toLocaleString(undefined, {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    })
+  } catch {
+    return dateString
+  }
+}
+
 export function CandidatePanel({
   candidate,
   jobId,
@@ -267,16 +313,25 @@ export function CandidatePanel({
           </div>
         </DialogHeader>
 
-        {/* Tabs */}
+        {/* Tabs - Improved styling */}
         <Tabs defaultValue="summary" className="flex-1 flex flex-col min-h-0">
-          <TabsList className="mx-6 mt-4 shrink-0">
-            <TabsTrigger value="summary" className="flex-1">
+          <TabsList className="mx-6 mt-4 shrink-0 bg-muted/50">
+            <TabsTrigger 
+              value="summary" 
+              className="flex-1 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none transition-all"
+            >
               AI Summary
             </TabsTrigger>
-            <TabsTrigger value="resume" className="flex-1">
+            <TabsTrigger 
+              value="resume" 
+              className="flex-1 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none transition-all"
+            >
               Resume
             </TabsTrigger>
-            <TabsTrigger value="timeline" className="flex-1">
+            <TabsTrigger 
+              value="timeline" 
+              className="flex-1 data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none transition-all"
+            >
               Timeline
             </TabsTrigger>
           </TabsList>
@@ -370,6 +425,7 @@ export function CandidatePanel({
                   <span className="text-primary text-xs">AI</span>
                 </span>
                 Match Breakdown
+                <span className="text-xs text-muted-foreground font-normal">(trust us, we&apos;re robots)</span>
               </h3>
               <div className="space-y-2">
                 {displayCandidate.strengths?.map((strength, index) => (
@@ -474,9 +530,12 @@ export function CandidatePanel({
                 Resume Preview
               </h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Full resume would be displayed here
+                Full document available for download
+                <span className="block text-xs text-muted-foreground/60 mt-1">
+                  (it&apos;s just Lorem Ipsum, but very professional Lorem Ipsum)
+                </span>
               </p>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" className="hover:bg-primary/5 hover:border-primary/30">
                 Download Resume
               </Button>
             </div>
@@ -491,8 +550,8 @@ export function CandidatePanel({
                 </div>
                 <div className="pb-4">
                   <p className="text-sm font-medium text-foreground">Applied</p>
-                  <p className="text-xs text-muted-foreground">
-                    {displayCandidate.appliedAt}
+                  <p className="text-xs text-muted-foreground" title={formatFullDate(displayCandidate.appliedAt)}>
+                    {formatTimeAgo(displayCandidate.appliedAt)}
                   </p>
                 </div>
               </div>
@@ -523,8 +582,8 @@ export function CandidatePanel({
                     <p className="text-xs text-muted-foreground">
                       Scored {interview.overall_score}% • {interview.recommendation?.replace("_", " ")}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(interview.completed_at).toLocaleDateString()}
+                    <p className="text-xs text-muted-foreground" title={formatFullDate(interview.completed_at)}>
+                      {formatTimeAgo(interview.completed_at)}
                     </p>
                   </div>
                 </div>
@@ -536,9 +595,22 @@ export function CandidatePanel({
                   </div>
                   <div>
                     <p className="text-sm font-medium text-foreground">
-                      Moved to {displayCandidate.status}
+                      Moved to {displayCandidate.status.replace("_", " ")}
                     </p>
                     <p className="text-xs text-muted-foreground">By recruiter</p>
+                  </div>
+                </div>
+              )}
+              {/* Empty state humor */}
+              {displayCandidate.status === "applied" && !hasCompletedInterview && (
+                <div className="flex gap-3">
+                  <div className="flex flex-col items-center">
+                    <div className="h-2 w-2 rounded-full bg-muted-foreground/30" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground italic">
+                      No more activity yet. The candidate is probably overthinking their cover letter.
+                    </p>
                   </div>
                 </div>
               )}

@@ -33,6 +33,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { Progress } from "@/components/ui/progress"
 import { useArchiveJob, useUnarchiveJob } from "@/hooks/use-jobs"
 import { useToast } from "@/hooks/use-toast"
@@ -166,36 +172,45 @@ export function JobCard({ job, variant = "grid" }: JobCardProps) {
   }
 
   return (
-    <Card className={cn(
-      "group hover:border-primary/30 hover:shadow-md transition-all",
-      job.isArchived && "opacity-60"
-    )}>
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-2">
-          <div className="space-y-1 min-w-0">
-            <Link
-              href={`/jobs/${job.id}`}
-              className="text-lg font-medium text-foreground hover:text-primary transition-colors line-clamp-1"
-            >
-              {job.title}
-            </Link>
-            <p className="text-sm text-muted-foreground">{job.department}</p>
-          </div>
-          <div className="flex flex-col items-end gap-1">
-            <Badge
-              variant="outline"
-              className={cn("capitalize shrink-0", statusColors[job.status])}
-            >
-              {job.status}
-            </Badge>
-            {job.isArchived && (
-              <Badge variant="outline" className="shrink-0 bg-muted text-muted-foreground text-xs">
-                Archived
+    <TooltipProvider delayDuration={300}>
+      <Card className={cn(
+        "group hover:border-primary/30 hover:shadow-md transition-all duration-200",
+        "hover:-translate-y-1",
+        job.isArchived && "opacity-60"
+      )}>
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="space-y-1 min-w-0">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    href={`/jobs/${job.id}`}
+                    className="text-lg font-medium text-foreground hover:text-primary transition-colors line-clamp-1 block"
+                  >
+                    {job.title}
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="top" className="max-w-[300px]">
+                  <p>{job.title}</p>
+                </TooltipContent>
+              </Tooltip>
+              <p className="text-sm text-muted-foreground">{job.department}</p>
+            </div>
+            <div className="flex flex-col items-end gap-1">
+              <Badge
+                variant="outline"
+                className={cn("capitalize shrink-0", statusColors[job.status])}
+              >
+                {job.status}
               </Badge>
-            )}
+              {job.isArchived && (
+                <Badge variant="outline" className="shrink-0 bg-muted text-muted-foreground text-xs">
+                  Archived
+                </Badge>
+              )}
+            </div>
           </div>
-        </div>
-      </CardHeader>
+        </CardHeader>
       <CardContent className="pt-0 space-y-4">
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           <span className="flex items-center gap-1.5">
@@ -231,7 +246,7 @@ export function JobCard({ job, variant = "grid" }: JobCardProps) {
 
         <div className="flex items-center gap-2 pt-2 border-t border-border">
           <Link href={`/jobs/${job.id}`} className="flex-1">
-            <Button variant="outline" size="sm" className="w-full bg-transparent">
+            <Button variant="outline" size="sm" className="w-full bg-transparent hover:bg-primary/5 hover:border-primary/30">
               View Candidates
             </Button>
           </Link>
@@ -239,6 +254,7 @@ export function JobCard({ job, variant = "grid" }: JobCardProps) {
         </div>
       </CardContent>
     </Card>
+    </TooltipProvider>
   )
 }
 

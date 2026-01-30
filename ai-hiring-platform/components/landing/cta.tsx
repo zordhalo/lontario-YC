@@ -28,10 +28,12 @@ export function CTA() {
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
-              <Button variant="outline" size="lg" className="border-border hover:bg-secondary h-12 px-8 bg-transparent">
-                <Github className="mr-2 h-4 w-4" />
-                View on GitHub
-              </Button>
+              <Link href="https://github.com/zordhalo/lontario-YC" target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="lg" className="border-border hover:bg-secondary h-12 px-8 bg-transparent">
+                  <Github className="mr-2 h-4 w-4" />
+                  View on GitHub
+                </Button>
+              </Link>
             </div>
             
             <div className="mt-8 flex flex-wrap gap-4 text-sm text-muted-foreground">

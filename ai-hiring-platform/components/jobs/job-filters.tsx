@@ -57,17 +57,18 @@ export function JobFilters({ filters, onFiltersChange }: JobFiltersProps) {
           <h4 className="text-sm font-medium text-foreground">Status</h4>
           <div className="space-y-2">
             {statusOptions.map((option) => (
-              <div key={option.value} className="flex items-center gap-2">
+              <div key={option.value} className="flex items-center gap-2 group">
                 <Checkbox
                   id={`status-${option.value}`}
                   checked={filters.status.includes(option.value)}
                   onCheckedChange={(checked) =>
                     handleStatusChange(option.value, checked as boolean)
                   }
+                  className="data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-colors"
                 />
                 <Label
                   htmlFor={`status-${option.value}`}
-                  className="text-sm font-normal text-muted-foreground cursor-pointer"
+                  className="text-sm font-normal text-muted-foreground cursor-pointer group-hover:text-foreground transition-colors"
                 >
                   {option.label}
                 </Label>
@@ -81,17 +82,18 @@ export function JobFilters({ filters, onFiltersChange }: JobFiltersProps) {
           <h4 className="text-sm font-medium text-foreground">Department</h4>
           <div className="space-y-2">
             {departmentOptions.map((option) => (
-              <div key={option.value} className="flex items-center gap-2">
+              <div key={option.value} className="flex items-center gap-2 group">
                 <Checkbox
                   id={`dept-${option.value}`}
                   checked={filters.department.includes(option.value)}
                   onCheckedChange={(checked) =>
                     handleDepartmentChange(option.value, checked as boolean)
                   }
+                  className="data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-colors"
                 />
                 <Label
                   htmlFor={`dept-${option.value}`}
-                  className="text-sm font-normal text-muted-foreground cursor-pointer"
+                  className="text-sm font-normal text-muted-foreground cursor-pointer group-hover:text-foreground transition-colors"
                 >
                   {option.label}
                 </Label>
@@ -102,17 +104,18 @@ export function JobFilters({ filters, onFiltersChange }: JobFiltersProps) {
 
         {/* Archive Filter */}
         <div className="space-y-3 pt-3 border-t border-border">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 group">
             <Checkbox
               id="show-archived"
               checked={filters.showArchived}
               onCheckedChange={(checked) =>
                 onFiltersChange({ ...filters, showArchived: checked as boolean })
               }
+              className="data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-colors"
             />
             <Label
               htmlFor="show-archived"
-              className="text-sm font-normal text-muted-foreground cursor-pointer"
+              className="text-sm font-normal text-muted-foreground cursor-pointer group-hover:text-foreground transition-colors"
             >
               Show archived jobs
             </Label>
