@@ -5,6 +5,7 @@ import { StatsCard } from "@/components/stats-card"
 import { AlertsSection } from "@/components/dashboard/alerts-section"
 import { PipelineSection } from "@/components/dashboard/pipeline-section"
 import { ActivityFeed } from "@/components/dashboard/activity-feed"
+import { UpcomingInterviewsSection } from "@/components/dashboard/upcoming-interviews"
 import { useDashboardStats } from "@/hooks/use-dashboard"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent } from "@/components/ui/card"
@@ -119,6 +120,9 @@ export default function DashboardPage() {
 
       {/* Alerts Section */}
       <AlertsSection className="mb-8" />
+
+      {/* Upcoming Interviews */}
+      <UpcomingInterviewsSection className="mb-8" />
 
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

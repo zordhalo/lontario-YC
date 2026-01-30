@@ -4,26 +4,13 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
   Briefcase,
-  ChevronDown,
   LayoutDashboard,
   MessageSquare,
-  Search,
-  Settings,
   Sparkles,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -72,18 +59,8 @@ export function AppHeader() {
           </nav>
         </div>
 
-        {/* Search and Actions */}
+        {/* Actions */}
         <div className="flex items-center gap-3">
-          {/* Search */}
-          <div className="hidden lg:flex relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search jobs, candidates..."
-              className="w-64 pl-9 bg-muted/50 border-transparent focus:border-border"
-            />
-          </div>
-
           {/* Create Job Button */}
           <Link href="/jobs/new">
             <Button size="sm" className="hidden sm:flex">
@@ -91,38 +68,6 @@ export function AppHeader() {
               Create Job
             </Button>
           </Link>
-
-          {/* User Menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center gap-2 pl-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src="/placeholder-avatar.jpg" />
-                  <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                    JD
-                  </AvatarFallback>
-                </Avatar>
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>
-                <div className="flex flex-col">
-                  <span>Jane Doe</span>
-                  <span className="text-sm font-normal text-muted-foreground">
-                    jane@company.com
-                  </span>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <Settings className="mr-2 h-4 w-4" />
-                Settings
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>Log out</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
     </header>
