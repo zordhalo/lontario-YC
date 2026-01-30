@@ -294,7 +294,7 @@ export default function JobDetailClient({ jobId }: JobDetailClientProps) {
           <Breadcrumb className="mb-3">
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbLink href="/">Dashboard</BreadcrumbLink>
+                <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
               </BreadcrumbItem>
               <BreadcrumbSeparator />
               <BreadcrumbItem>

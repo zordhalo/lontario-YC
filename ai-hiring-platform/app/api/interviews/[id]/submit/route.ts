@@ -293,23 +293,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // Update candidate with interview results on their profile
+    // Update candidate's last activity (preserve original AI match analysis)
+    // Interview results are stored on ai_interviews table, not overwritten on candidate
     await supabase
       .from("candidates")
       .update({
         last_activity_at: now.toISOString(),
-        // Store interview results on candidate profile
-        ai_score: overallScore,
-        ai_summary: aiSummary,
-        ai_strengths: strengths.slice(0, 5),
-        ai_concerns: concerns.slice(0, 5),
-        ai_score_breakdown: {
-          source: "interview",
-          interview_id: interviewId,
-          recommendation,
-          questions_answered: answers.length,
-          completed_at: now.toISOString(),
-        },
       })
       .eq("id", interview.candidate_id);
 
