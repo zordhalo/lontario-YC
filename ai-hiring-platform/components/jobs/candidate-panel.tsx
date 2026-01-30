@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import {
   AlertCircle,
   Calendar,
@@ -23,12 +24,17 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { AIScoreBadge } from "@/components/ai-score-badge"
+import { ScheduleDialog } from "@/components/interview"
+import { useToast } from "@/hooks/use-toast"
 import type { Candidate } from "@/lib/mock-data"
 
 interface CandidatePanelProps {
   candidate: Candidate
+  jobId?: string
+  jobTitle?: string
   onClose: () => void
   onStatusChange: (status: Candidate["status"]) => void
+  onInterviewScheduled?: (interview: { id: string; scheduled_at: string; interview_link: string }) => void
 }
 
 const statusOptions: { value: Candidate["status"]; label: string }[] = [
@@ -42,13 +48,27 @@ const statusOptions: { value: Candidate["status"]; label: string }[] = [
 
 export function CandidatePanel({
   candidate,
+  jobId,
+  jobTitle,
   onClose,
   onStatusChange,
+  onInterviewScheduled,
 }: CandidatePanelProps) {
+  const [scheduleDialogOpen, setScheduleDialogOpen] = useState(false)
+  const { toast } = useToast()
+
   const initials = candidate.name
     .split(" ")
     .map((n) => n[0])
     .join("")
+
+  const handleInterviewScheduled = (interview: { id: string; scheduled_at: string; interview_link: string }) => {
+    toast({
+      title: "Interview Scheduled",
+      description: `AI interview scheduled for ${new Date(interview.scheduled_at).toLocaleDateString()} at ${new Date(interview.scheduled_at).toLocaleTimeString()}`,
+    })
+    onInterviewScheduled?.(interview)
+  }
 
   return (
     <div className="w-96 border-l border-border bg-card flex flex-col h-full">
@@ -284,7 +304,11 @@ export function CandidatePanel({
 
       {/* Actions */}
       <div className="p-4 border-t border-border space-y-2">
-        <Button className="w-full">
+        <Button 
+          className="w-full"
+          onClick={() => setScheduleDialogOpen(true)}
+          disabled={!jobId}
+        >
           <Calendar className="mr-2 h-4 w-4" />
           Schedule Interview
         </Button>
@@ -298,6 +322,20 @@ export function CandidatePanel({
           </Button>
         </div>
       </div>
+
+      {/* Schedule Interview Dialog */}
+      {jobId && jobTitle && (
+        <ScheduleDialog
+          open={scheduleDialogOpen}
+          onOpenChange={setScheduleDialogOpen}
+          candidateId={candidate.id}
+          candidateName={candidate.name}
+          candidateEmail={candidate.email || ""}
+          jobId={jobId}
+          jobTitle={jobTitle}
+          onScheduled={handleInterviewScheduled}
+        />
+      )}
     </div>
   )
 }
