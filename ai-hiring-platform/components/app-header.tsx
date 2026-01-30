@@ -5,6 +5,7 @@ import Image from "next/image"
 import { usePathname } from "next/navigation"
 import {
   Briefcase,
+  Calendar,
   LayoutDashboard,
 } from "lucide-react"
 
@@ -14,6 +15,7 @@ import { Button } from "@/components/ui/button"
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Jobs", href: "/jobs", icon: Briefcase },
+  { name: "Interviews", href: "/interviews", icon: Calendar },
 ]
 
 export function AppHeader() {
